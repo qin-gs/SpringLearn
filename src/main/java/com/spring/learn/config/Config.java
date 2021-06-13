@@ -1,11 +1,16 @@
 package com.spring.learn.config;
 
+import com.spring.learn.bean.Blog;
 import com.spring.learn.bean.Person;
+import com.spring.learn.condition.LinuxCondition;
+import com.spring.learn.condition.MacCondition;
+import com.spring.learn.condition.WindowsCondition;
+import com.spring.learn.factory.MyFactoryBean;
+import com.spring.learn.registry.MyImportBeanDefinitionRegistrar;
+import com.spring.learn.selector.MyImportSelector;
 import org.springframework.beans.factory.annotation.Configurable;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.*;
-import org.springframework.stereotype.Controller;
-import org.springframework.stereotype.Service;
 
 @Configurable
 @ComponentScan(
@@ -16,6 +21,8 @@ import org.springframework.stereotype.Service;
         },
         useDefaultFilters = true
 )
+@Conditional({MacCondition.class})
+@Import({Blog.class, MyImportSelector.class, MyImportBeanDefinitionRegistrar.class})
 public class Config {
 
     /**
@@ -28,9 +35,9 @@ public class Config {
      *
      * Lazy 只针对单例对象， 第一次获取的时候才会创建对象
      */
-    @Bean(value = "person")
+    @Bean(value = "person", initMethod = "init", destroyMethod = "destroy")
     @Scope(scopeName = ConfigurableBeanFactory.SCOPE_SINGLETON)
-    @Lazy(value = true)
+    @Lazy(value = false)
     public Person getPerson() {
         return new Person("qqq", 123);
     }
@@ -38,13 +45,20 @@ public class Config {
     /**
      * 按照条件判断, 满足条件后注册bean对象
      */
+    @Conditional({WindowsCondition.class})
     @Bean("person1")
     public Person getPerson01() {
         return new Person("www", '2');
     }
 
+    @Conditional({LinuxCondition.class})
     @Bean("person2")
     public Person getPerson02() {
         return new Person("eee", '3');
+    }
+
+    @Bean
+    public MyFactoryBean getMyFactoryBean() {
+        return new MyFactoryBean();
     }
 }
