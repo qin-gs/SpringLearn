@@ -9,6 +9,9 @@ import javax.annotation.PreDestroy;
 public class Blue {
     private String name;
 
+    /**
+     * jdk11 中已被启用，需要引入jar包 javax.annotation-api
+     */
     @PostConstruct
     public void init() {
         System.out.println("blue init...");

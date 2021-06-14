@@ -22,6 +22,19 @@ public class MainTest {
         Arrays.stream(names).forEach(System.out::println);
     }
 
+    /**
+     * 配置运行环境
+     */
+    @Test
+    public void allBeanProfileTest() {
+        // AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
+        // context.getEnvironment().setActiveProfiles("dev");
+        // context.register(Config.class);
+        // context.refresh();
+        // String[] names = context.getBeanDefinitionNames();
+        // Arrays.stream(names).forEach(System.out::println);
+    }
+
     @Test
     public void test() {
         String[] names = context.getBeanNamesForType(Person.class);

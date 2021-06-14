@@ -2,11 +2,20 @@ package com.spring.learn.bean;
 
 import lombok.Data;
 import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.BeanNameAware;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
+import org.springframework.context.EmbeddedValueResolverAware;
+import org.springframework.util.StringValueResolver;
 
+/**
+ * 通过一系列aware接口将spring底层的一些组件注入到对象中
+ * 通过对应的Processor进行处理
+ * 比如：
+ * ApplicationContextAware  -->  ApplicationContextAwareProcessor
+ */
 @Data
-public class Person implements ApplicationContextAware {
+public class Person implements ApplicationContextAware, BeanNameAware, EmbeddedValueResolverAware {
 
     private ApplicationContext context;
 
@@ -40,5 +49,15 @@ public class Person implements ApplicationContextAware {
     @Override
     public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
         this.context = applicationContext;
+    }
+
+    @Override
+    public void setBeanName(String name) {
+        System.out.println("当前bean的名字 " + name);
+    }
+
+    @Override
+    public void setEmbeddedValueResolver(StringValueResolver resolver) {
+        System.out.println(resolver.resolveStringValue("${os.name}"));
     }
 }

@@ -5,6 +5,7 @@ import com.spring.learn.bean.Person;
 import com.spring.learn.condition.LinuxCondition;
 import com.spring.learn.condition.MacCondition;
 import com.spring.learn.condition.WindowsCondition;
+import com.spring.learn.dao.BookDao;
 import com.spring.learn.factory.MyFactoryBean;
 import com.spring.learn.registry.MyImportBeanDefinitionRegistrar;
 import com.spring.learn.selector.MyImportSelector;
@@ -60,5 +61,15 @@ public class Config {
     @Bean
     public MyFactoryBean getMyFactoryBean() {
         return new MyFactoryBean();
+    }
+
+    /**
+     * '@Primary注解'
+     * 首选的bean
+     */
+    @Primary
+    @Bean
+    public BookDao bookDao2() {
+        return new BookDao();
     }
 }
