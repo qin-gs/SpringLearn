@@ -1,26 +1,55 @@
-@Configuration
+### @Configuration的作用
 
-AnnotationConfigApplicationContext -> refresh() -> invokeBeanFactoryPostProcessors()  
-对加了该注解的类放入map, 全部进行cglib代理(继承该类；jdk动态代理基于接口)
-先判断是否已经被代理(通过接口判断EnhancedConfiguration.class extends BeanFactoryAware)  
-同时为代理类加一个字段 BeanFactory $$beanFactory(BeanFactoryAwareGeneratorStrategy.class)
-重写被@Bean注解的方法，通过上面的$$beanFactory生成  
-(用过滤器实现MethodInterceptor如果是第一次生成(判断方法名是否相同)去new, 否则用工厂获取)
+被`@Configuration`注解的类会被代理
 
-#### ----------
+`AnnotationConfigApplicationContext -> refresh() -> invokeBeanFactoryPostProcessors()`
 
-Spring容器  
-BeanDefinition, BeanDefinitionMap, BeanFactoryPostProcessor, BeanFactory, singletonObjects...
+判断被注解的类是否已经被代理(通过接口判断`EnhancedConfiguration.class extends BeanFactoryAware`) 
 
-spring bean的生命周期  
-AbstractBeanFactory.doGetBean()  
-getSingleton(beanName)  
-从singletonObjects中获取bean，不为空直接返回  
-DefaultSingletonBeanRegistry  
-isSingletonCurrentlyInCreation 判断对象是否在创建中(bean有循环依赖，所以有中间状态, singletonsCurrentlyInCreation记录正在创建的bean)  
-bean 先构造函数 再
+对没被代理的类放入map, 全部进行cglib代理(继承该类；jdk动态代理基于接口)，继承的时候实现一个接口`EnhancedConfiguration`，
 
-9个地方调用了6个后置处理器
+同时为代理类加一个 `BeanFactory` 类型的`$$beanFactory`字段通过`BeanFactoryAwareGeneratorStrategy.class`完成字段的添加，通过`BeanFactoryAwareMethodInterceptor`完成字段的赋值)
+重写被`@Bean`注解的方法，通过上面的`$$beanFactory`生成
+
+(用过滤器实现`MethodInterceptor`如果是第一次生成(判断方法名是否相同(当前正在执行的方法 和 被调用方法))去调用父类的方法new对象，否则用工厂getBean获取)
+
+[代码解析](https://blog.csdn.net/qq_37561309/article/details/107979128)
+
+### bean的生命周期
+
+```java
+new AnnotationConfigApplicationContext(Config.class);
+
+this(); // 会调用父类的构造函数，这里会创建BeanFactory(DefaultListableBeanFactory，用来实例化对象)
+register(componentClasses); // 为被@Configuration修饰的类创建BeanDefinition注册进去
+refresh(); // 完成容器的初始化 synchronized
+
+invokeBeanFactoryPostProcessors(); // 扫描类，处理@Import, @ImportResource(引入xml文件)
+  // 对每个类创建BeanDefinition对象放入beanDefinitionMap
+  // 判断类是否实现BeanFactoryPostProcessor, 进行处理
+finishBeanFactoryInitialization(); // 实例化bean对象
+  // beanFactory.preInstantiateSingletons();
+```
+
+(BeanFactoryPostProcessor ---> 普通Bean构造方法 ---> 设置依赖或属性 ---> @PostConstruct ---> InitializingBean ---> initMethod )
+
+Spring容器
+
+`BeanDefinition, BeanDefinitionMap, BeanFactoryPostProcessor, BeanFactory, singletonObjects...`
+
+spring bean的生命周期
+
+AbstractBeanFactory.doGetBean()
+
+getSingleton(beanName)
+
+从singletonObjects中获取bean，不为空直接返回
+
+DefaultSingletonBeanRegistry
+
+isSingletonCurrentlyInCreation 判断对象是否在创建中(bean有循环依赖，所以有中间状态, singletonsCurrentlyInCreation记录正在创建的bean)
+
+bean 先构造函数，在9个地方调用了6个后置处理器
 
 1. ApplicationContextAwareProcessor
 2. ImportAwareBeanPostProcessor
@@ -122,8 +151,7 @@ ApplicationListener
 @EventListener注解 使用EventListenerMethodProcessor完成 实现了 SmartInitializingSingleton 接口  
 refresh -> finishBeanFactoryInitialization  
 先实例化单例bean；  
-然后遍历所有的bean，检查时候实现了SmartInitializingSingleton接口  
-
+然后遍历所有的bean，检查时候实现了SmartInitializingSingleton接口
 
 原理  
 refresh -> finishRefresh -> publishEvent -> getApplicationEventMulticaster().multicastEvent(applicationEvent, eventType)
@@ -137,13 +165,45 @@ refresh -> finishRefresh -> publishEvent -> getApplicationEventMulticaster().mul
    没有的话创建一个(赋值给applicationEventMulticaster)放入容器中
 4. 获取所有的ApplicationListener，如果有Executor，进行多线程异步派发；否则执行按顺序派发  
    refresh -> registerListeners  
-   从容器中拿到所有的监听器，注册到上面的applicationEventMulticaster  
+   从容器中拿到所有的监听器，注册到上面的applicationEventMulticaster
+
+Spring容器创建过程  
+refresh()
+
+1. prepareRefresh 刷新预处理
+    1. initPropertySources 初始化一些属性，子容器自定义一些个性化的属性
+    2. validateRequiredProperties 属性校验
+    3. new LinkedHashSet 保存容器中的一些事件 ApplicationEvent
+2. obtainFreshBeanFactory 获取bean工厂
+    1. refreshBeanFactory 创建了一个 DefaultListableBeanFactory，配置id
+    2. getBeanFactory 返回上面创建的
+3. prepareBeanFactory 设置上面的beanFactory
+    1. 设置BeanFactory的类加载器，支持表达式解析器
+    2. 添加一个BeanPostProcessor(ApplicationContextAwareProcessor)
+    3. 设置忽略的自动装配接口(EnvironmentAware...)
+    4. 注册可以解析的自动装配，可以在组件中自动注入(BeanFactory, ResourceLoader, ApplicationEventPublisher, ApplicationContext)
+    5. 添加一个BeanPostProcessor(ApplicationListenerDetector)
+    6. 添加编译时AspectJ
+    7. 给BeanFactory注册一些能用的组件
+        1. environment -> ConfigurationEnvironment
+        2. systemProperties -> Map<String, Object>
+        3. systemEnvironment -> Map<String, Object>
+4. postProcessBeanFactory 后置处理(子类通过重写这个方法在BeanFactory创建并预准备完成以后做进一步设置)
+5. invokeBeanFactoryPostProcessors 执行BeanFactoryPostProcessor后置处理器(在BeanFactory初始化之后执行)
+    1. 两个接口BeanFactoryPostProcessor，BeanDefinitionRegistryPostProcessor
+    2. 执行 BeanDefinitionPostProcessor 方法
+        1. 获取所有的BeanDefinitionRegistryPostProcessor
+        2. 先执行实现了 PriorityOrdered 优先级接口的 BDRPP
+        3. 然后执行实现了 Ordered 顺序接口的 BDRPP
+        4. 最后执行没有实现任何接口的 BDRPP
+    3. 执行 BeanFactoryPostProcessor 方法  
+       逻辑同上
+6. registerBeanPostProcessors 执行BeanPostProcessor 拦截bean创建过程
+    1. 获取所有的BeanPostProcessor  
 
 
 
-
-
-
+### Spring生命周期
 
 
 

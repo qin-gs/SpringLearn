@@ -4,6 +4,10 @@ import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.stereotype.Component;
 
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
+
 /**
  * AbstractAutowireCapableBeanFactory
  * <p>
@@ -34,6 +38,19 @@ public class MyBeanPostProcessor implements BeanPostProcessor {
 
     @Override
     public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
+        // aop的实现
+        if (beanName.equals("aopBean")) {
+            System.out.println("为该对象创建动态代理对象");
+            Class<?> anInterface = bean.getClass().getInterfaces()[0];
+            Object o = Proxy.newProxyInstance(ClassLoader.getSystemClassLoader(), new Class[]{anInterface}, new InvocationHandler() {
+                @Override
+                public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+                    method.invoke("");
+                    return null;
+                }
+            });
+            return o;
+        }
         // System.out.println("postProcessAfterInitialization...");
         return bean;
     }

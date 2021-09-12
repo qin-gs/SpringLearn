@@ -5,13 +5,13 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>org.spring.learn</groupId>
-    <artifactId>SpringLearn</artifactId>
+    <artifactId>spring-learn</artifactId>
     <version>1.0-SNAPSHOT</version>
 
     <properties>
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
-        <spring-version>4.3.12.RELEASE</spring-version>
+        <spring-version>5.3.7</spring-version>
     </properties>
 
     <dependencies>
@@ -23,6 +23,11 @@
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-web</artifactId>
+            <version>${spring-version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-webmvc</artifactId>
             <version>${spring-version}</version>
         </dependency>
         <dependency>
