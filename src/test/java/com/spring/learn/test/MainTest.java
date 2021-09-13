@@ -2,7 +2,7 @@ package com.spring.learn.test;
 
 import com.spring.learn.bean.Person;
 import com.spring.learn.config.Config;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.core.env.ConfigurableEnvironment;
 

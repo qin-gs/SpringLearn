@@ -1,7 +1,6 @@
 package com.spring.learn.aop;
 
 import com.spring.learn.config.Config;
-import org.junit.Test;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
 public class AopTest {

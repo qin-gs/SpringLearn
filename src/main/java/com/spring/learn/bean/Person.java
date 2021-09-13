@@ -1,6 +1,5 @@
 package com.spring.learn.bean;
 
-import lombok.Data;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.BeanNameAware;
 import org.springframework.context.ApplicationContext;
@@ -14,7 +13,6 @@ import org.springframework.util.StringValueResolver;
  * 比如：
  * ApplicationContextAware  -->  ApplicationContextAwareProcessor
  */
-@Data
 public class Person implements ApplicationContextAware, BeanNameAware, EmbeddedValueResolverAware {
 
     private ApplicationContext context;
@@ -60,4 +58,30 @@ public class Person implements ApplicationContextAware, BeanNameAware, EmbeddedV
     public void setEmbeddedValueResolver(StringValueResolver resolver) {
         System.out.println(resolver.resolveStringValue("${os.name}"));
     }
+
+    public ApplicationContext getContext() {
+        return context;
+    }
+
+    public void setContext(ApplicationContext context) {
+        this.context = context;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public int getAge() {
+        return age;
+    }
+
+    public void setAge(int age) {
+        this.age = age;
+    }
+
+
 }

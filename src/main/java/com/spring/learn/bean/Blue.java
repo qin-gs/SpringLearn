@@ -1,11 +1,8 @@
 package com.spring.learn.bean;
 
-import lombok.Data;
-
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 
-@Data
 public class Blue {
     private String name;
 
@@ -20,5 +17,20 @@ public class Blue {
     @PreDestroy
     public void destroy() {
         System.out.println("blue destroy...");
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    @Override
+    public String toString() {
+        return "Blue{" +
+                "name='" + name + '\'' +
+                '}';
     }
 }
