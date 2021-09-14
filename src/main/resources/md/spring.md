@@ -33,21 +33,21 @@ finishBeanFactoryInitialization(); // 实例化bean对象
 
 (BeanFactoryPostProcessor ---> 普通Bean构造方法 ---> 设置依赖或属性 ---> @PostConstruct ---> InitializingBean ---> initMethod )
 
-Spring容器
+Spring容器的内容：
 
-`BeanDefinition, BeanDefinitionMap, BeanFactoryPostProcessor, BeanFactory, singletonObjects...`
+​    `BeanDefinition, BeanDefinitionMap, BeanFactoryPostProcessor, BeanFactory, singletonObjects(存放创建完成的单例对象，大部分对象都存在这里)...`
 
-spring bean的生命周期
+实例化bean的过程(需要处理循环依赖(单例才可以))：
 
-AbstractBeanFactory.doGetBean()
+​    `DefaultListableBeanFactory#preInstantiateSingletons` -> `getBean` -> `AbstractBeanFactory.doGetBean()` -> `getSingleton返回null` -> 进行各种验证 -> `getSingleton` -> `beforeSingletonCreation将当前对象放入正在创建的对象集合` -> `getObject(调用createBean)` -> 
 
-getSingleton(beanName)
+从`singletonObjects`中获取bean，不为空直接返回
 
-从singletonObjects中获取bean，不为空直接返回
+`DefaultSingletonBeanRegistry`
 
-DefaultSingletonBeanRegistry
+`isSingletonCurrentlyInCreation` 判断对象是否在创建中(bean有循环依赖，所以有中间状态, `singletonsCurrentlyInCreation`记录正在创建的bean)
 
-isSingletonCurrentlyInCreation 判断对象是否在创建中(bean有循环依赖，所以有中间状态, singletonsCurrentlyInCreation记录正在创建的bean)
+**BeanPostProcessor**
 
 bean 先构造函数，在9个地方调用了6个后置处理器
 
@@ -58,12 +58,18 @@ bean 先构造函数，在9个地方调用了6个后置处理器
 5. AutowiredAnnotationBeanPostProcessor (@Autowired)
 6. ApplicationListenerDetector
 
-populateBean 完成@Autowired
-org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.resolveBeforeInstantiation
-InstantiationAwareBeanPostProcessor
 
-BeanPostProcessor 插手bean的初始化过程  
-实例化 整个过程 初始化 new之后
+
+`populateBean` 完成被@Autowired修饰的属性注入
+
+`org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.resolveBeforeInstantiation`
+`InstantiationAwareBeanPostProcessor`
+
+BeanPostProcessor 插手bean的初始化(Initialization)过程
+
+(aop就是在这里将目标对象替换成了代理对象)
+
+实例化是整个过程包括: 创建 + 初始化
 
 new创建对象 -> 执行所有的BeanPostProcessor -> @PostConstruct
 
