@@ -73,9 +73,9 @@ BeanPostProcessor 插手bean的初始化(Initialization)过程
 
 new创建对象 -> 执行所有的BeanPostProcessor -> @PostConstruct
 
-#### ----------
 
-SpringAop AspectJ
+
+### SpringAop AspectJ
 
 概念:
 
@@ -98,20 +98,32 @@ SpringAop AspectJ
 ProceedingJoinPoint extends JoinPoint
 ```
 
-@AspectJ  
-@EnableAspectJAutoProxy(proxyTargetClass=true) 或 <aop:aspectj-autoproxy/>  
-proxyTargetClass 采用cglib动态代理  
-jdk动态代理基于接口 obj extends Proxy implements aInterface  
-cglib基于继承 obj extends Service implements aInterface
+@AspectJ
 
-1. execution(modifiers-pattern? ret-type-pattern declaring-type-pattern?name-pattern(param-pattern)throws-pattern?)
-   最小粒度是方法(private方法不能被代理)
-2. within 最小粒度是类
-3. this(类) 限制代理对象
-4. target 限制代理的目标对象
-5. args 现在参数
-6. @annotation 检查方法上面有没有注解 @within 检查类上面有没有注解
-7. 加上@ 表示注解(没有~~@execution~~)
+开启aop的方式：
+
+1. `@EnableAspectJAutoProxy(proxyTargetClass=true)` java
+
+   `proxyTargetClass` 参数表示采用cglib动态代理
+
+2.  `<aop:aspectj-autoproxy/>` xml
+
+两种动态代理方式：
+
+1. jdk动态代理基于接口 `obj extends Proxy implements aInterface`
+
+2. cglib基于继承 `obj extends Service implements aInterface`
+
+定义切面的几种方式：
+
+1. `execution(modifiers-pattern? ret-type-pattern declaring-type-pattern?name-pattern(param-pattern)throws-pattern?)`最小粒度是方法(private方法不能被代理(无法被继承))
+2. `within(com.XXX)` 最小粒度是类
+3. `this(类)` 限制代理对象
+4. `target` 限制代理的目标对象
+5. `args(java.lang.String)` 限制方法参数
+6. `@annotation` 限制方法上面有没有指定注解 
+7. `@within` 限制类上面有没有指定注解
+8. 加上`@`表示注解(没有~~`@execution`~~)
 
 ```text
 execution(* com.xyz.service.AccountService.*(..))
@@ -120,21 +132,33 @@ within(com.xyz.service..*)
 @within(org.springframework.transaction.annotation.Transactional) // 检查类上面的注解
 ```
 
-ioc 和 aop 都是编程目标，没有spring也能实现aop(aspectJ)  
-springAOP当中的对象必须放在ioc容器中  
-aop如何被代理(AnnotationAwareAspectJAutoProxyCreator AbstractAutoProxyCreator.createProxy)  
-启用aop之后，getBean(ABean.class)拿不到的(被代理了)  
-DefaultSingletonBeanRegistry.getSingleton  
+
+
+ioc 和 aop 都是编程目标，没有spring也能实现aop(aspectJ)
+
+springAOP当中的对象必须放在ioc容器中
+
+aop如何被代理(`AnnotationAwareAspectJAutoProxyCreator` `AbstractAutoProxyCreator.createProxy`)
+
+启用aop之后，getBean(ABean.class)拿不到目标对象的(被代理了)
+
+DefaultSingletonBeanRegistry.getSingleton
+
 AbstractAutowireCapableBeanFactory.createBean
 
-BeanFactoryPostProcessor  
-一个方法 postProcessBeanFactory  
-beanFactory的后置处理器，在BeanFactory标准初始化后调用；所有BeanDefinition**已经被加载**，但尚未实例化任何bean  
-创建ioc容器，refresh -> invokeBeanFactoryPostProcessors -> invokeBeanFactoryPostProcessors  
+BeanFactoryPostProcessor
+
+一个方法 postProcessBeanFactory
+
+beanFactory的后置处理器，在BeanFactory标准初始化后调用；所有BeanDefinition**已经被加载**，但尚未实例化任何bean
+
+创建ioc容器，refresh -> invokeBeanFactoryPostProcessors -> invokeBeanFactoryPostProcessors
+
 执行所有的BeanFactoryPostProcessor，在bean创建之前运行
 
 BeanDefinitionRegistryPostProcessor 一个子接口 执行时优先于上面的BeanFactoryPostProcessor(可以用来加入一些BeanDefinition)
-加了一个方法 postProcessBeanDefinitionRegistry 所有的BeanDefinition**将要被加载**，bean实例还未创建  
+加了一个方法 postProcessBeanDefinitionRegistry 所有的BeanDefinition**将要被加载**，bean实例还未创建
+
 refresh -> invokeBeanFactoryPostProcessors -> invokeBeanDefinitionRegistryPostProcessors ->
 invokeBeanFactoryPostProcessors
 
