@@ -5,10 +5,12 @@ import org.springframework.context.annotation.ConditionContext;
 import org.springframework.core.env.Environment;
 import org.springframework.core.type.AnnotatedTypeMetadata;
 
+import java.util.Objects;
+
 public class LinuxCondition implements Condition {
 
     @Override
     public boolean matches(ConditionContext context, AnnotatedTypeMetadata metadata) {
-        return context.getEnvironment().getProperty("os.name").contains("Linux");
+        return Objects.requireNonNull(context.getEnvironment().getProperty("os.name")).contains("Linux");
     }
 }
