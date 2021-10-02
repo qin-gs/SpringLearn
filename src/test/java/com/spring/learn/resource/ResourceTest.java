@@ -1,12 +1,24 @@
 package com.spring.learn.resource;
 
+import com.spring.learn.config.Config;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.core.io.Resource;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
+import org.springframework.core.io.*;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.core.io.support.ResourcePatternResolver;
+import org.springframework.web.context.support.ServletContextResource;
 
+import javax.servlet.ServletContext;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Arrays;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -26,5 +38,35 @@ public class ResourceTest {
         Resource[] resources = resolver.getResources("classpath*:/**/*.xml");
         assertNotNull(resources);
         Arrays.stream(resources).forEach(System.out::println);
+    }
+
+    /**
+     * 各种Resource接口
+     */
+    @Test
+    public void resource() throws MalformedURLException, URISyntaxException, FileNotFoundException {
+        // ftp, http, file
+        UrlResource urlResource = new UrlResource(new URI("https://www.test.com/a.txt"));
+        // classpath
+        ClassPathResource classPathResource = new ClassPathResource("classpath:bean.xml");
+        // file, url
+        FileSystemResource fileSystemResource = new FileSystemResource(new File("a.txt"));
+        // ServletContext
+        // new ServletContextResource(new ServletContext(), "");
+        InputStreamResource inputStreamResource = new InputStreamResource(new FileInputStream(""));
+        ByteArrayResource byteArrayResource = new ByteArrayResource(new byte[0]);
+    }
+
+    /**
+     * ResourceLoader
+     * 所有的ApplicationContext都实现了该接口
+     * <p>
+     * ResourceLoaderAware
+     * 也可以直接用ApplicationContext获取，或者直接注入
+     */
+    @Test
+    public void resourceLoaderTest() throws IOException {
+        AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext(Config.class);
+        Resource[] resources = context.getResources("");
     }
 }

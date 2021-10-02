@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+    <bean id="dependsOnExoticType" class="com.spring.learn.editor.DependsOnExoticType">
+        <property name="type" value="a type"/>
+    </bean>
+
+    <!--将自定义的类型转换器注册进去-->
+    <bean class="org.springframework.beans.factory.config.CustomEditorConfigurer">
+        <property name="customEditors">
+            <map>
+                <entry key="com.spring.learn.editor.ExoticType" value="com.spring.learn.editor.ExoticTypeEditor"/>
+            </map>
+        </property>
+    </bean>
+
+    <!--二选一-->
+    <!--注解注册注册器-->
+    <!--<bean class="com.spring.learn.editor.ExoticTypeEditorRegistrar"/>-->
+</beans>
