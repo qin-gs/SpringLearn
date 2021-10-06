@@ -7,7 +7,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.core.env.Environment;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
-import org.springframework.transaction.TransactionManager;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 import javax.sql.DataSource;
@@ -31,7 +30,10 @@ public class Config {
     }
 
     @Bean
-    public TransactionManager transactionManager() {
-        return new DataSourceTransactionManager(dataSource());
+    public DataSourceTransactionManager transactionManager() {
+        DataSourceTransactionManager manager = new DataSourceTransactionManager(dataSource());
+        // 使用AspectJ完成事务，只能注解类，不能注解接口
+        // AnnotationTransactionAspect.aspectOf().setTransactionManager(manager);
+        return manager;
     }
 }
