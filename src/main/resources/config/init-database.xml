@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:jdbc="http://www.springframework.org/schema/jdbc"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd http://www.springframework.org/schema/jdbc http://www.springframework.org/schema/jdbc/spring-jdbc.xsd http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd">
+
+    <!--初始化数据库，忽略一些drop语句的错误，其他失败将导致异常-->
+    <jdbc:initialize-database data-source="dataSource" ignore-failures="DROPS">
+        <!--通常第一个用来drop一些表，第二个用来初始化-->
+        <jdbc:script location="classpath*:/init/db-schema.sql"/>
+        <jdbc:script location="classpath*:/init/db-test.sql"/>
+    </jdbc:initialize-database>
+
+    <context:property-placeholder location="classpath*:dbconfig.properties"/>
+    <bean id="dataSource" class="${jdbc.dataSource}">
+        <property name="url" value="${jdbc.url}"/>
+        <property name="username" value="${jdbc.username}"/>
+        <property name="password" value="${jdbc.password}"/>
+        <property name="driverClassName" value="${jdbc.driverClass}"/>
+    </bean>
+</beans>

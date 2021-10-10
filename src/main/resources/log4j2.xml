@@ -4,7 +4,8 @@
 <!--monitorInterval：Log4j能够自动检测修改配置 文件和重新配置本身，设置间隔秒数 -->
 <Configuration status="info" name="XInclude" monitorInterval="30">
     <Properties>
-        <Property name="PATTERN" value="%d{yyyy-MM-dd HH:mm:ss} %5p [%t] %c : %m%n"/>
+        <Property name="PATTERN" value="%d{yyyy-MM-dd HH:mm:ss} %5p [%t] %C %L : %m%n"/>
+        <!-- %C{1} 配置输入的包层级-->
         <!--<Property name="PATTERN" value="%d{yyyy-MM-dd HH:mm:ss} %5p [%t] %-40.40c{1.} : %m%n"/>-->
         <!-- 格式化输出：%date表示日期，%thread表示线程名，%-5level：级别从左显示5个字符宽度 %msg：日志消息，%n是换行符-->
         <!-- %logger{36} 表示 Logger 名字最长36个字符 -->
@@ -95,12 +96,12 @@
 
         <!--  %d{yyyy-MM-dd HH:mm:ss, SSS} : 日志生产时间,输出到毫秒的时间-->
         <!--  %-5level : 输出日志级别，-5表示左对齐并且固定输出5个字符，如果不足在右边补0-->
-        <!--  %c : logger的名称(%logger)-->
+        <!--  %c : logger的名称 输出logger的名称，即语句private static final Logger logger = LogManager.getLogger(App.class.getName())中App.class.getName()的值-->
         <!--  %t : 输出当前线程名称-->
         <!--  %p : 日志输出格式-->
         <!--  %m : 日志内容，即 logger.info("message")-->
         <!--  %n : 换行符-->
-        <!--  %C : Java类名(%F)-->
+        <!--  %C : 具体输出日志的Java类名(%F)-->
         <!--  %L : 行号-->
         <!--  %M : 方法名-->
         <!--  %l : 输出语句所在的行数, 包括类名、方法名、文件名、行数-->

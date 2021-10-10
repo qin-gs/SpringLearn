@@ -14,6 +14,5 @@ public class LifeCycleTest {
     public void test() {
         ApplicationContext context = new AnnotationConfigApplicationContext(LifeCycleConfig.class);
         BeanInit bean = context.getBean(BeanInit.class);
-        System.out.println(bean);
     }
 }
