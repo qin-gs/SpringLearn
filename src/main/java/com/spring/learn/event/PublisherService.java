@@ -2,7 +2,6 @@ package com.spring.learn.event;
 
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
-import org.springframework.stereotype.Component;
 
 import java.util.Set;
 

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        https://www.springframework.org/schema/beans/spring-beans.xsd">
+    <bean id="testChangeMethod" class="com.spring.learn.replace.TestChangeMethod">
+        <!-- 实现MethodReplacer接口，替换原有的方法-->
+        <replaced-method name="changeMe" replacer="replacer">
+            <!-- 如果有重载方法，可以配置多个参数类型-->
+            <!-- <arg-type>String</arg-type>-->
+        </replaced-method>
+    </bean>
+    <bean id="replacer" class="com.spring.learn.replace.TestMethodReplacer"/>
+
+    <bean id="user" class="com.spring.learn.bean.User">
+        <constructor-arg index="0" value="name"/>
+        <constructor-arg index="1" value="password"/>
+    </bean>
+</beans>

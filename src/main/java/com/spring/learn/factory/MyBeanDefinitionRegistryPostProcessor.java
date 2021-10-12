@@ -1,6 +1,5 @@
 package com.spring.learn.factory;
 
-import com.spring.learn.bean.Red;
 import com.spring.learn.bean.Yellow;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;

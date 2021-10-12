@@ -11,7 +11,13 @@ import com.spring.learn.registry.MyImportBeanDefinitionRegistrar;
 import com.spring.learn.selector.MyImportSelector;
 import org.springframework.beans.factory.annotation.Configurable;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
-import org.springframework.context.annotation.*;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.Conditional;
+import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.context.annotation.Primary;
+import org.springframework.context.annotation.Scope;
 
 @Configurable
 @ComponentScan(
@@ -33,7 +39,7 @@ public class Config {
      * ConfigurableBeanFactory.SCOPE_SINGLETON 创建容器的时候就会放进去，以后每次获取都返回同一个
      * WebApplicationContext#SCOPE_REQUEST
      * WebApplicationContext#SCOPE_SESSION
-     *
+     * <p>
      * Lazy 只针对单例对象， 第一次获取的时候才会创建对象
      */
     @Bean(value = "person", initMethod = "init", destroyMethod = "destroy")

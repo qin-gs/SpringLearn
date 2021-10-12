@@ -1,22 +1,22 @@
 package com.spring.learn.event;
 
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.context.ApplicationEvent;
 
-@DisplayName("监听事件发布")
-public class EventTest {
+public class EventTest extends ApplicationEvent {
+    private static final long serialVersionUID = 2715426747981831875L;
 
-    @Test
-    public void test() {
-        AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext(Config.class);
+    public String msg;
 
-        // 发布自定义事件，通常由Service层发布(同时实现ApplicationEventPublisherAware)
-        // context.publishEvent(new MyApplicationEvent("自己发布的事件", "123@qq.com", "ccc") {
-        // });
-        PublisherService service = context.getBean(PublisherService.class);
-        service.publishEvent("123@qq.com", "this is a content");
+    public EventTest(Object source) {
+        super(source);
+    }
 
-        context.close();
+    public EventTest(Object source, String msg) {
+        super(source);
+        this.msg = msg;
+    }
+
+    public void print() {
+        System.out.println(msg);
     }
 }

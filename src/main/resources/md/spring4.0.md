@@ -10,7 +10,7 @@
 
 1. ApplicationEventPublisher：让容器拥有发布上下文事件的功能(容器启动，关闭等)
 
-   ​	AbstractApplicationContext中存在一个ApplicationEventMulticaster保存所有的监听器
+   ​ AbstractApplicationContext中存在一个ApplicationEventMulticaster保存所有的监听器
 
 2. MessageSource: 提供国际化消息访问功能
 
@@ -39,17 +39,17 @@
 
    为bean添加了三个作用域: singleton, protptype, request, session, global session
 
-   ​	ConfigurableWebApplicationContext继承该接口
+   ​ ConfigurableWebApplicationContext继承该接口
 
    初始化方式：
 
-   1. org.springframework.web.context.ContextLoaderServlet
+    1. org.springframework.web.context.ContextLoaderServlet
 
-      ​	配置<listener>
+       ​ 配置<listener>
 
-   2. org.springframework.web.context.ContextLoaderListener
+    2. org.springframework.web.context.ContextLoaderListener
 
-      ​	配置<servlet>
+       ​ 配置<servlet>
 
 
 

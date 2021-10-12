@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        https://www.springframework.org/schema/beans/spring-beans.xsd">
+    <!--	name 起别名 两种方式-->
+    <bean id="user" name="u,s" class="com.spring.learn.bean.User"/>
+    <alias name="user" alias="e,r"/>
+
+    <!--	import标签引入其他配置文件-->
+    <import resource="spring-config-temp.xml"/>
+</beans>

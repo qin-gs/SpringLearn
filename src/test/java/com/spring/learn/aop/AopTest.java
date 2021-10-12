@@ -1,21 +1,15 @@
 package com.spring.learn.aop;
 
-import com.spring.learn.config.Config;
-import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.junit.jupiter.api.Test;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 public class AopTest {
-
-    public static void main(String[] args) {
-        AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext(Config.class);
-        AopMethod method = context.getBean(AopMethod.class);
-        System.out.println(method.testAop(1, 2));
+    @Test
+    public void test() {
+        ApplicationContext context = new ClassPathXmlApplicationContext("xml/aop.xml");
+        TestBean bean = context.getBean(TestBean.class);
+        bean.testAop();
     }
 
-    // AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext(Config.class);
-    //
-    // @Test
-    // public void test() {
-    //     AopMethod method = context.getBean(AopMethod.class);
-    //     System.out.println(method.testAop(1, 2));
-    // }
 }

@@ -3,7 +3,6 @@ package com.spring.learn.service;
 import com.spring.learn.dao.BookDao;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
@@ -15,9 +14,9 @@ public class BookService {
      * 先按照类型查找(BookDao.class)
      * 如果找到多个按照名称(bookDao)查找
      * primary 配置首选的bean
-     *
+     * <p>
      * 通过 AutowiredAnnotationBeanPostProcessor 实现注入功能
-     *
+     * <p>
      * 还可以注解 构造器 方法 字段 参数
      * 方法：通常标注在setter方法上，方法的参数从容器中获取
      * 构造方法：标注在有参的构造函数上，spring会调用该构造函数(如果没有无参构造函数，只有有参的构造函数，会调用有参的自动注入参数，注解可省略)

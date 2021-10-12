@@ -2,8 +2,6 @@ package com.spring.learn.config;
 
 import com.mchange.v2.c3p0.ComboPooledDataSource;
 import com.spring.learn.bean.Color;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Configurable;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.EmbeddedValueResolverAware;
 import org.springframework.context.annotation.Bean;
@@ -34,7 +32,7 @@ public class DataSourceConfig implements EmbeddedValueResolverAware {
      * Profile
      * 使用命令行参数设置环境表示 -Dspring.profiles.active=dev
      * 使用代码 context.getEnvironment().setActiveProfiles("dev")
-     *
+     * <p>
      * 也可以修饰类
      */
     @Bean

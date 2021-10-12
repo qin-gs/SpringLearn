@@ -1,30 +1,56 @@
 package com.spring.learn.bean;
 
+import java.util.List;
+import java.util.Map;
 
-import java.io.Serializable;
-
-public class User implements Serializable {
-
-    private String id;
-    private String name;
+public class User {
+    private String username;
+    private String password;
     private int age;
-    private String gender;
-    private String phoneNum;
+    private Book book;
+    private List<String> list;
+    private Map<String, Object> map;
 
-    public String getId() {
-        return id;
+    public User() {
     }
 
-    public void setId(String id) {
-        this.id = id;
+    public User(String username) {
+        this.username = username;
     }
 
-    public String getName() {
-        return name;
+    public User(String username, String password) {
+        this.username = username;
+        this.password = password;
     }
 
-    public void setName(String name) {
-        this.name = name;
+    public User(String username, String password, int age) {
+        this.username = username;
+        this.password = password;
+        this.age = age;
+    }
+
+    public User(String username, String password, int age, List<String> list, Map<String, Object> map) {
+        this.username = username;
+        this.password = password;
+        this.age = age;
+        this.list = list;
+        this.map = map;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
     }
 
     public int getAge() {
@@ -35,30 +61,43 @@ public class User implements Serializable {
         this.age = age;
     }
 
-    public String getGender() {
-        return gender;
+    public Book getBook() {
+        return book;
     }
 
-    public void setGender(String gender) {
-        this.gender = gender;
+    public void setBook(Book book) {
+        this.book = book;
     }
 
-    public String getPhoneNum() {
-        return phoneNum;
+    public List<String> getList() {
+        return list;
     }
 
-    public void setPhoneNum(String phoneNum) {
-        this.phoneNum = phoneNum;
+    public void setList(List<String> list) {
+        this.list = list;
+    }
+
+    public Map<String, Object> getMap() {
+        return map;
+    }
+
+    public void setMap(Map<String, Object> map) {
+        this.map = map;
     }
 
     @Override
     public String toString() {
         return "User{" +
-                "id='" + id + '\'' +
-                ", name='" + name + '\'' +
+                "username='" + username + '\'' +
+                ", password='" + password + '\'' +
                 ", age=" + age +
-                ", gender='" + gender + '\'' +
-                ", phoneNum='" + phoneNum + '\'' +
+                ", book=" + book +
+                ", list=" + list +
+                ", map=" + map +
                 '}';
+    }
+
+    public void showMe() {
+        System.out.println("i am a user");
     }
 }

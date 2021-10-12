@@ -17,7 +17,7 @@
     <bean id="txManage" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
         <property name="dataSource" ref="dataSource"/>
     </bean>
-    <bean id="txService" class="com.spring.learn.tx.TxService" />
+    <bean id="txService" class="com.spring.learn.tx.TxService"/>
 
     <tx:advice id="txAdvice" transaction-manager="txManage">
         <tx:attributes>

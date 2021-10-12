@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:aop="http://www.springframework.org/schema/aop"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd http://www.springframework.org/schema/aop https://www.springframework.org/schema/aop/spring-aop.xsd">
+    <!--	用beans标签声明profile-->
+    <beans profile="dev">
+        <bean id="book" class="com.spring.learn.bean.Book"/>
+    </beans>
+    <!--	用beans标签声明profile-->
+    <beans profile="prod">
+        <!-- 修改作用域-->
+        <bean id="car" class="com.spring.learn.bean.Car" scope="session">
+            <!-- 设置创建代理的模式，默认使用cglib-->
+            <aop:scoped-proxy proxy-target-class="false"/>
+        </bean>
+    </beans>
+
+</beans>

@@ -9,7 +9,6 @@ import java.util.Objects;
 
 /**
  * 数据校验
- *
  */
 @Component
 public class PersonValidator implements Validator {

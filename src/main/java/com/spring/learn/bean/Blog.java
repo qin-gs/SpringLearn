@@ -7,7 +7,7 @@ import java.util.List;
 public class Blog implements Serializable {
     private String id;
     private String title;
-    private User author;
+    private User2 author;
     private String body;
     private Date time;
     private List<Comment> comments;
@@ -33,7 +33,7 @@ public class Blog implements Serializable {
         return this.title;
     }
 
-    public User getAuthor() {
+    public User2 getAuthor() {
         return this.author;
     }
 
@@ -57,7 +57,7 @@ public class Blog implements Serializable {
         this.title = title;
     }
 
-    public void setAuthor(User author) {
+    public void setAuthor(User2 author) {
         this.author = author;
     }
 

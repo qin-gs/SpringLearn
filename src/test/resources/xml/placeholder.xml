@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+    <!-- idea报错，但是程序可以正常允许-->
+    <bean id="message" class="com.spring.learn.bean.Message">
+        <property name="mes">
+            <value>${bean.message}</value>
+        </property>
+    </bean>
+
+    <!--	指定配置文件，在bean的定义中引用-->
+    <bean id="mesHandler" class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+        <property name="locations">
+            <list>
+                <value>config/bean.properties</value>
+            </list>
+        </property>
+    </bean>
+</beans>

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+    <bean id="dataSource" class="com.alibaba.druid.pool.DruidDataSource">
+        <property name="driverClassName" value="com.mysql.cj.jdbc.Driver"/>
+        <property name="url"
+                  value="jdbc:mysql://localhost:3306/spring?useUnicode=true&amp;characterEncoding=utf-8&amp;serverTimezone=GMT-8"/>
+        <property name="username" value="root"/>
+        <property name="password" value="root"/>
+        <property name="maxActive" value="10"/>
+    </bean>
+
+    <bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+        <property name="configLocation" value="spring/mybatis-config.xml"/>
+        <property name="dataSource" ref="dataSource"/>
+    </bean>
+
+    <!-- 手动加入mapper-->
+    <!--	<bean id="userMapper" class="org.mybatis.spring.mapper.MapperFactoryBean">-->
+    <!--		<property name="mapperInterface" value="com.spring.learn.mybatis.mapper.UserMapper"/>-->
+    <!--		<property name="sqlSessionFactory" ref="sqlSessionFactory"/>-->
+    <!--	</bean>-->
+
+    <!-- 扫描文件-->
+    <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+        <!-- 使用分号或逗号分隔多个包路径,进行递归搜索-->
+        <property name="basePackage" value="com.spring.learn.mybatis.mapper"/>
+        <!--		<property name="basePackage" value="${basePackage}"/>-->
+        <!--		<property name="processPropertyPlaceHolders" value="true"/>-->
+    </bean>
+
+    <bean id="mesHandler" class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+        <property name="locations">
+            <list>
+                <value>properties/mybatis.properties</value>
+            </list>
+        </property>
+    </bean>
+</beans>

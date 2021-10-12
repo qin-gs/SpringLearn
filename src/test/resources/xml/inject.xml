@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+    <bean id="userManager" class="com.spring.learn.inject.UserManager">
+        <!-- date类型无法直接注入，抛出异常NotWritablePropertyException-->
+        <property name="dateValue" value="2021-07-23"/>
+    </bean>
+
+    <bean id="dataPropertyEditor" class="com.spring.learn.inject.DataPropertyEditor">
+        <property name="format" value="yyyy-MM-dd"/>
+    </bean>
+    <!-- FIXME 抛异常TypeMismatchException不知道为什么 注册自定义的属性编辑器-->
+    <bean id="customEditorConfigurer" class="org.springframework.beans.factory.config.CustomEditorConfigurer">
+        <property name="customEditors">
+            <map>
+                <!-- key为属性编辑器对应的类型，当Spring在注入bean的属性时如果遇到Date类型的属性，会自动调用该解析器，用解析结果代替原始值-->
+                <entry key="java.util.Date">
+                    <bean class="com.spring.learn.inject.DataPropertyEditor">
+                        <property name="format" value="yyyy-MM-dd"/>
+                    </bean>
+                </entry>
+            </map>
+        </property>
+    </bean>
+
+    <!--	注册spring自带的属性编辑器-->
+    <!--	<bean class="org.springframework.beans.factory.config.CustomEditorConfigurer">-->
+    <!--		<property name="propertyEditorRegistrars">-->
+    <!--			<list>-->
+    <!--				<bean class="DatePropertyEditorRegistrar"/>-->
+    <!--			</list>-->
+    <!--		</property>-->
+    <!--	</bean>-->
+</beans>

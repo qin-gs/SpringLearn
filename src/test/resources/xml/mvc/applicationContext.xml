@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	   xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+    <!--	HandlerMapping-->
+    <bean id="simpleUrlMapping" class="org.springframework.web.servlet.handler.SimpleUrlHandlerMapping">
+        <property name="mappings">
+            <props>
+                <prop key="/userList.htm">userController</prop>
+            </props>
+        </property>
+        <property name="interceptors">
+            <list>
+                <ref bean="themeChangeInterceptor"/>
+            </list>
+        </property>
+    </bean>
+    <bean id="userController" class="com.spring.learn.mvc.UserController"/>
+
+    <!--	文件上传配置-->
+    <bean id="multipartResolver" class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+        <property name="maxUploadSizePerFile" value="1000"/>
+    </bean>
+
+    <!--	国际化配置-->
+    <!--	基于url的配置-->
+    <bean id="localeResolver" class="org.springframework.web.servlet.i18n.AcceptHeaderLocaleResolver"/>
+    <!--	基于session的配置-->
+    <bean id="localeResolverSession" class="org.springframework.web.servlet.i18n.SessionLocaleResolver"/>
+    <!--	基于cookie的配置-->
+    <bean id="localeResolverCookie" class="org.springframework.web.servlet.i18n.CookieLocaleResolver"/>
+
+    <!--	主题配置-->
+    <!--	主题资源存放位置-->
+    <bean id="themeSource" class="org.springframework.ui.context.support.ResourceBundleThemeSource">
+        <!-- 默认去根目录下查找，会自定义-->
+        <property name="basenamePrefix" value="com.spring"/>
+    </bean>
+    <!--	主题解析器-->
+    <!--	固定主题-->
+    <bean id="themeResolver" class="org.springframework.web.servlet.theme.FixedThemeResolver">
+        <property name="defaultThemeName" value="spring"/>
+    </bean>
+    <!--	基于session的主题解析器-->
+    <bean id="themeResolverSession" class="org.springframework.web.servlet.theme.SessionThemeResolver">
+        <property name="defaultThemeName" value="summer"/>
+    </bean>
+    <!--	基于cookie的主题解析器-->
+    <bean id="themeResolverCookie" class="org.springframework.web.servlet.theme.CookieThemeResolver">
+        <property name="defaultThemeName" value="fall"/>
+    </bean>
+    <!--	主题拦截器-->
+    <bean id="themeChangeInterceptor" class="org.springframework.web.servlet.theme.ThemeChangeInterceptor">
+        <property name="paramName" value="themeName"/>
+    </bean>
+
+    <!--	异常解析器-->
+    <bean id="exceptionHandler" class="com.spring.learn.mvc.ExceptionHandler"/>
+
+    <!--	视图逻辑名称-->
+    <bean id="viewNameTranslator" class="org.springframework.web.servlet.view.DefaultRequestToViewNameTranslator"/>
+
+    <!--	视图解析器-->
+    <bean id="viewResolver" class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+        <property name="prefix" value="/xml/mvc"/>
+        <property name="suffix" value=".jsp"/>
+    </bean>
+</beans>

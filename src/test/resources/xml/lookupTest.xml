@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        https://www.springframework.org/schema/beans/spring-beans.xsd">
+    <bean id="getBeanTest" class="com.spring.learn.bean.GetBeanTest">
+        <!-- getBean是一个需要返回bean的抽象方法，具体返回什么在配置文件中配置	-->
+        <lookup-method name="getBean" bean="teacher"/>
+    </bean>
+    <bean id="teacher" class="com.spring.learn.bean.Teacher"/>
+</beans>

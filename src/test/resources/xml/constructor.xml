@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        https://www.springframework.org/schema/beans/spring-beans.xsd">
+    <bean id="user" class="com.spring.learn.bean.User">
+        <constructor-arg index="0" value="name"/>
+        <constructor-arg name="password" value="password"/>
+        <constructor-arg index="2" value="12"/>
+        <constructor-arg index="3">
+            <list>
+                <value>qqq</value>
+                <value>www</value>
+                <value>eee</value>
+            </list>
+        </constructor-arg>
+        <property name="map">
+            <map>
+                <entry key="key1" value="val1"/>
+                <entry key="key2" value="val2"/>
+            </map>
+        </property>
+        <constructor-arg index="4">
+            <map>
+                <entry key="key1" value="val1"/>
+                <entry key="key2" value="12"/>
+                <entry key="key3" value="null"/>
+            </map>
+        </constructor-arg>
+    </bean>
+
+    <bean id="user2" class="com.spring.learn.bean.User">
+        <property name="username" value="aaa"/>
+        <property name="map">
+            <map>
+                <entry key="k1" value="v1"/>
+                <entry key="k2" value="v2"/>
+            </map>
+        </property>
+    </bean>
+</beans>

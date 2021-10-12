@@ -4,11 +4,12 @@
 
 `AnnotationConfigApplicationContext -> refresh() -> invokeBeanFactoryPostProcessors()`
 
-判断被注解的类是否已经被代理(通过接口判断`EnhancedConfiguration.class extends BeanFactoryAware`) 
+判断被注解的类是否已经被代理(通过接口判断`EnhancedConfiguration.class extends BeanFactoryAware`)
 
 对没被代理的类放入map, 全部进行cglib代理(继承该类；jdk动态代理基于接口)，继承的时候实现一个接口`EnhancedConfiguration`，
 
-同时为代理类加一个 `BeanFactory` 类型的`$$beanFactory`字段通过`BeanFactoryAwareGeneratorStrategy.class`完成字段的添加，通过`BeanFactoryAwareMethodInterceptor`完成字段的赋值)
+同时为代理类加一个 `BeanFactory` 类型的`$$beanFactory`字段通过`BeanFactoryAwareGeneratorStrategy.class`
+完成字段的添加，通过`BeanFactoryAwareMethodInterceptor`完成字段的赋值)
 重写被`@Bean`注解的方法，通过上面的`$$beanFactory`生成
 
 (用过滤器实现`MethodInterceptor`如果是第一次生成(判断方法名是否相同(当前正在执行的方法 和 被调用方法))去调用父类的方法new对象，否则用工厂getBean获取)
@@ -39,7 +40,9 @@ Spring容器的内容：
 
 实例化bean的过程(需要处理循环依赖(单例才可以))：
 
-​    `DefaultListableBeanFactory#preInstantiateSingletons` -> `getBean` -> `AbstractBeanFactory.doGetBean()` -> `getSingleton返回null` -> 进行各种验证 -> `getSingleton` -> `beforeSingletonCreation将当前对象放入正在创建的对象集合` -> `getObject(调用createBean)` -> 
+​    `DefaultListableBeanFactory#preInstantiateSingletons` -> `getBean` -> `AbstractBeanFactory.doGetBean()`
+-> `getSingleton返回null` -> 进行各种验证 -> `getSingleton` -> `beforeSingletonCreation将当前对象放入正在创建的对象集合`
+-> `getObject(调用createBean)` ->
 
 从`singletonObjects`中获取bean，不为空直接返回
 
@@ -58,8 +61,6 @@ bean 先构造函数，在9个地方调用了6个后置处理器
 5. AutowiredAnnotationBeanPostProcessor (@Autowired)
 6. ApplicationListenerDetector
 
-
-
 `populateBean` 完成被@Autowired修饰的属性注入
 
 `org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.resolveBeforeInstantiation`
@@ -72,8 +73,6 @@ BeanPostProcessor 插手bean的初始化(Initialization)过程
 实例化是整个过程包括: 创建 + 初始化
 
 new创建对象 -> 执行所有的BeanPostProcessor -> @PostConstruct
-
-
 
 ### SpringAop AspectJ
 
@@ -106,7 +105,7 @@ ProceedingJoinPoint extends JoinPoint
 
    `proxyTargetClass` 参数表示采用cglib动态代理
 
-2.  `<aop:aspectj-autoproxy/>` xml
+2. `<aop:aspectj-autoproxy/>` xml
 
 两种动态代理方式：
 
@@ -116,12 +115,13 @@ ProceedingJoinPoint extends JoinPoint
 
 定义切面的几种方式：
 
-1. `execution(modifiers-pattern? ret-type-pattern declaring-type-pattern?name-pattern(param-pattern)throws-pattern?)`最小粒度是方法(private方法不能被代理(无法被继承))
+1. `execution(modifiers-pattern? ret-type-pattern declaring-type-pattern?name-pattern(param-pattern)throws-pattern?)`
+   最小粒度是方法(private方法不能被代理(无法被继承))
 2. `within(com.XXX)` 最小粒度是类
 3. `this(类)` 限制代理对象
 4. `target` 限制代理的目标对象
 5. `args(java.lang.String)` 限制方法参数
-6. `@annotation` 限制方法上面有没有指定注解 
+6. `@annotation` 限制方法上面有没有指定注解
 7. `@within` 限制类上面有没有指定注解
 8. 加上`@`表示注解(没有~~`@execution`~~)
 
@@ -131,8 +131,6 @@ within(com.xyz.service..*)
 @annotation(org.springframework.transaction.annotation.Transactional) // 检查方法上面的注解
 @within(org.springframework.transaction.annotation.Transactional) // 检查类上面的注解
 ```
-
-
 
 ioc 和 aop 都是编程目标，没有spring也能实现aop(aspectJ)
 
@@ -229,9 +227,7 @@ refresh()
     3. 执行 BeanFactoryPostProcessor 方法  
        逻辑同上
 6. registerBeanPostProcessors 执行BeanPostProcessor 拦截bean创建过程
-    1. 获取所有的BeanPostProcessor  
-
-
+    1. 获取所有的BeanPostProcessor
 
 ### Spring生命周期
 

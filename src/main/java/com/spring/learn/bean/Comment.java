@@ -6,7 +6,7 @@ public class Comment implements Serializable {
     private String id;
     private String blogId;
     private String body;
-    private User user;
+    private User2 user;
     private String content;
 
     public String getId() {
@@ -33,11 +33,11 @@ public class Comment implements Serializable {
         this.body = body;
     }
 
-    public User getUser() {
+    public User2 getUser() {
         return user;
     }
 
-    public void setUser(User user) {
+    public void setUser(User2 user) {
         this.user = user;
     }
 
