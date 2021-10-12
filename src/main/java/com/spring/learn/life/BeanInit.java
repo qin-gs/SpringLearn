@@ -13,6 +13,10 @@ import javax.annotation.PreDestroy;
 @Component
 public class BeanInit implements InitializingBean, DisposableBean {
 
+    public BeanInit() {
+        System.out.println("constructor");
+    }
+
     @PostConstruct
     public void postConstruct() {
         System.out.println("postConstruct");
