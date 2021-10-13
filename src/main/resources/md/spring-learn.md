@@ -254,24 +254,21 @@ spring初始化时，会用`GenericBeanDefinition`或是`ConfigurationClassBeanD
 
 #### 5.1 FactoryBean
 
-该接口用来定制实例化bean
+该接口用来定制实例化bean，`org.springframework.beans.factory.FactoryBean<T>` 有三个方法
 
-```text
-  org.springframework.beans.factory.FactoryBean<T> 有三个方法
-  getObject 返回FactoryBean创建的bean实例对象，如果isSingleton返回true，该对象也会被放到容器的单例缓存池中
-  getObjectType 返回创建的bean类型
-  isSingleton bean的作用域
-```
+1. `getObject `: 返回`FactoryBean`创建的bean实例对象，如果`isSingleton`返回true，该对象也会被放到容器的单例缓存池中
+2. `getObjectType `: 返回创建的bean类型
+3. `isSingleton `: bean的作用域
 
-如果配置文件中<bean>的class时FactoryBean的实现类，通过getBean返回的不是FactoryBean本身，而是getObject方法返回的对象  
-如果要获取FactoryBean实例，需要在id前加上&前缀(getBean("&car"))
+如果配置文件中`<bean>`的`class`是`FactoryBean`的实现类，通过`getBean`返回的不是`FactoryBean`本身，而是`getObject`方法返回的对象；如果要获取`FactoryBean`实例，需要在id前加上&前缀(`getBean("&car")`)
 
 #### 5.2 缓存中获取单例bean
 
-`DefaultSingletonBeanRegistry.getSingleton(String)`  
-getBean方法会首先尝试从缓存中加载，然后尝试从singletonFactories中加载  
-为了避免循环依赖，在创建bean的过程中不会等bean创建完成就会将创建bean的ObjectFactory提前加入到缓存中  
-如果下一个bean需要上一个bean，就直接使用ObjectFactory
+`DefaultSingletonBeanRegistry.getSingleton(String)`
+
+`getBean`方法会首先尝试从缓存中加载，然后尝试从`singletonFactories`中加载
+
+为了避免循环依赖，在创建`bean`的过程中不会等`bean`创建完成就会将创建`bean`的`ObjectFactory`提前加入到缓存中，如果下一个`bean`需要上一个`bean`，就直接使用`ObjectFactory`
 
 ```text
 1. Map<String, Object> singletonObjects: 存储 beanName 和 bean实例 的关系
@@ -284,45 +281,47 @@ getBean方法会首先尝试从缓存中加载，然后尝试从singletonFactori
 
 #### 5.3 从bean实例中获取对象
 
-`AbstractBeanFactory.getObjectForBeanInstance`  
-检测bean的正确性(如果是FactoryBean则调用getObject，否则直接返回对象)  
-拿到bean之后调用注册的BeanPostProcessor的postProcessAfterInitialization方法
+`AbstractBeanFactory.getObjectForBeanInstance`
+
+检测bean的正确性(如果是`FactoryBean`则调用`getObject`，否则直接返回对象)
+
+拿到bean之后调用注册的`BeanPostProcessor`的`postProcessAfterInitialization`方法(`AbstractAutowireCapableBeanFactory#postProcessObjectFromFactoryBean`)
 
 #### 5.4 获取单例
 
 `DefaultSingletonBeanRegistry.getSingleton(String, ObjectFactory<?>)`
-如果缓存中没有拿到，从头开始创建对象(getSingleton整个过程需要同步)  
-该方法会在创建bean(singletonFactory.getObject)前后执行一些操作(beforeSingletonCreation, afterSingletonCreation)
+如果缓存中没有拿到，从头开始创建对象(`getSingleton`整个过程需要同步)
+
+该方法会在创建`bean(singletonFactory.getObject)`前后执行一些操作(`beforeSingletonCreation`, `afterSingletonCreation`)
 
 1. 检查缓存是否已经加载过
-2. 如果没有加载，记录beanName的正在加载状态
-3. 加载单例前记录加载状态(beforeSingletonCreation 将当前正要创建的bean记录到缓存中，便于循环依赖检测)
-4. 实例化bean(getObject)
-5. 加载后调用处理方法(afterSingletonCreation 移除bean的加载状态)
-6. 将bean放入缓存并清除bean加载过程中的各种辅助状态
+2. 如果没有加载，记录`beanName`的正在加载状态
+3. 加载单例前记录加载状态(`beforeSingletonCreation `将当前正要创建的bean记录到缓存中，便于循环依赖检测)
+4. 使用`ObjectFactory`实例化`bean`(`getObject`)
+5. 加载后调用处理方法(`afterSingletonCreation `移除bean的加载状态)
+6. 将bean放入缓存并清除bean加载过程中的各种辅助状态(就是清理上面的几个Map)
 7. 返回结果
 
 #### 5.5 创建bean
 
 ```text
 org/springframework/beans/factory/support/AbstractBeanFactory.java:332
-createBean()
+AbstractAutowireCapableBeanFactory#createBean()
 
 do* 完成真正的逻辑
 get* create* 完成一些统筹工作
 ```
 
-createBean
+**createBean**
 
-1. 根据设置的class属性或className来解析Class
-2. 对override属性进行标记验证(lookup-method, replace-method两个配置存放在BeanDefinition的methodOverrides字段)
+1. 根据设置的`class`属性或`className`来解析`Class`
+2. 对`override`属性进行标记验证(`lookup-method`, `replace-method`两个配置存放在`BeanDefinition`的`methodOverrides`字段)
 3. 应用初始化前的后置处理器，解析指定bean是否存在初始化前的短路操作
 4. 创建bean
 
-处理override属性
+处理`override`属性
 
 ```text
-
 org.springframework.beans.factory.support.AbstractBeanDefinition.prepareMethodOverrides
 
 lookup-method, replace-method 两个配置会统一存放在BeanDefinition的methodOverrides属性中
@@ -334,18 +333,25 @@ lookup-method, replace-method 两个配置会统一存放在BeanDefinition的met
 
 <!-- 实现MethodReplacer接口，替换原有的方法-->
 <replaced-method name="changeMe" replacer="replacer">
-    <!-- 如果又重载方法，可以配置多个参数类型-->
+    <!-- 如果有重载方法，可以配置多个参数类型-->
     <!-- <arg-type>String</arg-type>-->
 </replaced-method>
 ```
 
-实例化的前置处理  
-resolveBeforeInstantiation  
-如果前置处理返回的结果不为空，会直接返回bean结果，不进行后续创建(aop功能基于这里判断)
-对后置处理器中的所有InstantiationAwareBeanPostProcessor类型进行两个方法调用
+实例化的前置处理
 
-实例化的后置处理  
-如果上面的bean不为空，就不会进行下面的创建过程，所以会在这里调用后置处理方法
+`AbstractAutowireCapableBeanFactory#resolveBeforeInstantiation`
+
+如果前置处理返回的结果不为空，会直接返回bean结果，不进行后续创建(aop功能基于这里判断)
+对后置处理器中的所有`InstantiationAwareBeanPostProcessor`类型进行两个方法调用
+
+1. 实例化前的后处理应用
+
+   `postProcessBeforeInitialization`改方法调用之后，返回的bean可能是经过代理的对象(cglib, jdk)
+
+2. 实例化后的后处理应用
+
+   `postProcessAfterInitialization`如果上面的bean不为空，就不会进行后面普通bean的创建过程，所以需要在这里调用后置处理方法
 
 ```text
 BeanPostProcessor接口两个方法
@@ -357,41 +363,63 @@ BeanPostProcessor接口两个方法
 
 spring容器将每一个正在创建的bean标识符放在一个容器中，如果在创建过程中发现自己已经在容器中了，会抛出异常；创建完成后从容器中清除掉
 
-1. 构造器循环依赖  
-   通过构造器注入造成的循环依赖，是无法解决的(BeanCurrentlyInCreationException)
-2. setter循环依赖  
-   通过Spring容器提暴露刚完成构造器注入但未完成其他步骤的bean完成的
-3. prototype的依赖处理  
-   无法解决，因为容器不缓存作用域为prototype的bean
+1. 构造器循环依赖
+
+   通过构造器注入造成的循环依赖，是**无法解决**的(`BeanCurrentlyInCreationException`)
+
+2. setter循环依赖
+
+   通过Spring容器**提前暴露**刚完成构造器注入但未完成其他步骤的bean完成的，提前暴露一个单例工厂方法(`ObjectFactory`)，使其他bean能引用到它
+
+3. prototype的依赖处理
+
+   **无法解决**，因为容器不缓存作用域为`prototype`的bean
 
 #### 5.7 创建bean
 
 **创建Bean实例**
-resolveBeforeInstantiation之后，如果 postProcessorInstantiation方法返回了bean就直接返回  
-否则开始创建 (doCreateBean)  
-`AbstractAutowireCapableBeanFactory.doCreateBean`
+
+`resolveBeforeInstantiation`之后，如果 `postProcessorInstantiation`方法返回了bean就直接返回
+
+否则开始创建`AbstractAutowireCapableBeanFactory.doCreateBean`
 
 1. 如果是单例，清除缓存
-2. 实例化bean，将BeanDefinition转换成BeanWrapper  
-   createBeanInstance 根据只当bean使用对应的策略创建新的实例  
-   如果存在工厂方法就是要工厂方法进行初始化  
-   如果有多个构造函数，就根据参数查找对应的构造函数进行初始化  
-   否则采用默认的构造函数进行初始化
-3. MergeBeanDefinitionPostProcessor应用  
-   bean合并后的处理(Autowired注解通过此方法实现类型的与解析)
-4. 依赖处理  
+
+2. 实例化bean，将`BeanDefinition`转换成`BeanWrapper`
+
+   - `createBeanInstance `根据只当bean使用对应的策略创建新的实例
+
+   - 如果存在工厂方法就是要工厂方法进行初始化
+
+   - 如果有多个构造函数，就根据参数查找对应的构造函数进行初始化
+
+   - 否则采用默认的构造函数进行实例化
+
+3. `MergeBeanDefinitionPostProcessor`应用
+
+   bean合并后的处理(`Autowired`注解通过此方法实现类型的与解析)
+
+4. 依赖处理
+
    如果AB有循环依赖，会通过放入缓存中的ObjectFactory来创建实例，解决循环依赖问题
-5. 属性填充  
+
+5. 属性填充
+
    将所有属性填充到bean对象中
-6. 循环依赖检查  
+
+6. 循环依赖检查
+
    判断已加载的bean是否已经出现循环依赖，判断是否需要抛出异常；对于prototype作用域的bean，只能抛出异常`BeanCurrentlyInCreationException`
-7. 注册DisposableBean  
-   如果配置了destroy-method，需要注册便于销毁时调用
+
+7. 注册`DisposableBean`
+
+   如果配置了`destroy-method`，需要注册便于销毁时调用
+
 8. 完成创建并返回
 
-createBeanInstance
+**创建bean实例**`AbstractAutowireCapableBeanFactory#doCreateBean`，具体过程如下：
 
-1. 如果RootBeanDefinition中存在factoryMethodName属性(配置文件中配置了factory-method)，会尝试用工厂方法生成bean
+1. 如果`RootBeanDefinition`中存在`factoryMethodName`属性(配置文件中配置了`factory-method`)，会尝试用工厂方法生成bean
 2. 解析构造函数进行实例化；由于可能存在多个构造函数，参数不同，根据参数类型判断使用哪个进行实例化；由于解析过程比较消耗性能，因此采用缓存
    将已解析过的对象放到RootBeanDefinition中的resolvedConstructorOrFactoryMethod字段
     1. autowireConstructor 带参数的实例化
@@ -476,7 +504,7 @@ InstantiationAwareBeanPostProcessor 添加了 postProcessAfterInstantiation 实�
 
 ### 6. 容器的功能扩展
 
-两种方式获取容器
+两种方式加载配置文件
 
 ```text
 BeanFactory bf = new XmlBeanFactory(new CLassPathResource("bean-factory.xml"));
@@ -485,30 +513,45 @@ BeanFactory bf = new XmlBeanFactory(new CLassPathResource("bean-factory.xml"));
 ApplicationContext ac = new ClassPathXmlApplicationContext("bean-factory.xml", "bean-factory-2.xml");
 ```
 
-![ClassPathXmlApplicationContext继承关系](image/ClassPathXmlApplicationContext继承关系.png)
+![ClassPathXmlApplicationContext继承关系](../image/ClassPathXmlApplicationContext继承关系.png)
 
 #### 6.1 设置配置路径
 
-解析给定的一个或多个配置文件路径，如果包含特殊符号(比如${var})，会搜索系统变量进行替换
+​		解析给定的一个或多个配置文件路径，如果给的路径数组中包含特殊符号(比如`${var}`)，会搜索系统变量进行替换
 
 #### 6.2 扩展功能
 
-`AbstractApplicationContext.refresh`
+配置文件的解析`AbstractApplicationContext.refresh`
 
 1. 初始化准备(对系统属性 或 环境变量进行准备验证)
-2. 初始化BeanFactory，读取xml文件  
-   该操作完成后，已经包含BeanFactory提供的所有功能
-3. 对BeanFactory进行各种功能填充  
-   @Qualifier @Autowired
+
+2. 初始化`BeanFactory`，读取xml文件
+
+   该操作完成后，已经包含`BeanFactory`提供的所有功能
+
+3. 对`BeanFactory`进行各种功能填充
+
+   `@Qualifier @Autowired`
+
 4. 扩展：子类覆盖方法做额外处理
-5. 激活BeanFactory处理器
-6. 注册拦截bean创建的bean处理器，只是注册，getBean的时候调用
-7. 为上下文初始化Message源，对不同语言的消息进行国际化处理
-8. 初始化应用消息广播器，方法applicationEventMulticaster中
+
+5. 激活`BeanFactory`处理器
+
+6. 注册拦截bean创建的bean处理器，只是注册，`getBean`的时候调用
+
+7. 为上下文初始化`Message`源，对不同语言的消息进行国际化处理
+
+8. 初始化应用消息广播器，放入`applicationEventMulticaster`这个bean中
+
 9. 扩展：子类初始化其他bean
-10. 查找listener 注册到广播器中
-11. 初始化剩下的单实例(non-lazy-init)
-12. 完成刷新过程，同时生命周期处理器lifecycleProcessor刷新过程，同时发出ContextRefreshEvent通过
+
+10. 查找`listener `注册到广播器中
+
+11. 初始化剩下的单实例(`non-lazy-init`)
+
+12. 完成刷新过程，同时生命周期处理器`lifecycleProcessor`刷新过程，同时发出`ContextRefreshEvent`通知
+
+如果过程中出现异常：销毁创建好的bean对象，取消刷新
 
 #### 6.3 环境准备
 
