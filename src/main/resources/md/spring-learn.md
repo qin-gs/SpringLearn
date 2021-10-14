@@ -399,77 +399,102 @@ spring容器将每一个正在创建的bean标识符放在一个容器中，如�
 
    bean合并后的处理(`Autowired`注解通过此方法实现类型的与解析)
 
-4. 依赖处理
+4. 依赖处理：如果AB有循环依赖，会通过放入缓存中的ObjectFactory来创建实例，解决循环依赖问题
 
-   如果AB有循环依赖，会通过放入缓存中的ObjectFactory来创建实例，解决循环依赖问题
-
-5. 属性填充
-
-   将所有属性填充到bean对象中
+5. 属性填充：将所有属性填充到bean对象中
 
 6. 循环依赖检查
 
    判断已加载的bean是否已经出现循环依赖，判断是否需要抛出异常；对于prototype作用域的bean，只能抛出异常`BeanCurrentlyInCreationException`
 
-7. 注册`DisposableBean`
-
-   如果配置了`destroy-method`，需要注册便于销毁时调用
+7. 注册`DisposableBean`：如果配置了`destroy-method`，需要注册便于销毁时调用
 
 8. 完成创建并返回
 
 **创建bean实例**`AbstractAutowireCapableBeanFactory#doCreateBean`，具体过程如下：
 
+`AbstractAutowireCapableBeanFactory#createBeanInstance`
+
 1. 如果`RootBeanDefinition`中存在`factoryMethodName`属性(配置文件中配置了`factory-method`)，会尝试用工厂方法生成bean
-2. 解析构造函数进行实例化；由于可能存在多个构造函数，参数不同，根据参数类型判断使用哪个进行实例化；由于解析过程比较消耗性能，因此采用缓存
-   将已解析过的对象放到RootBeanDefinition中的resolvedConstructorOrFactoryMethod字段
-    1. autowireConstructor 带参数的实例化
-       `ConstructorResolver.autowireConstructor`
-        1. 确定构造函数的参数  
-           根据explicitArgs参数判断 getBean(beanName, ...args) 这种方式获取bean是，参数已经确定了  
-           如果已经分析过就从缓存中获取(拿到的是初始类型，可能需要转换 "1" -> 1)  
-           从配置文件中获取(可能是指定值，也可能是其他bean的引用(resolveConstructorArguments处理))
-        2. 确定构造函数  
-           根据参数个数匹配  
-           有两种情况(index, name)，所以需要先获取参数名称  
-           `<constructor-arg index="0" value="name"/>`  
-           `<constructor-arg name="password" value="password"/>`
-        3. 根据确定的构造函数转换对应的参数类型
-        4. 构造函数的不确定性验证
-        5. 实例化bean
-    2. instantiateBean 无参构造函数的实例化
-        1. 实例化bean
-    3. 实例化过程  
+
+2. 解析构造函数进行实例化；由于可能存在多个构造函数，参数不同，根据参数类型判断使用哪个进行实例化；由于解析过程比较消耗性能，因此采用缓存，将已解析过的对象放到`RootBeanDefinition`中的`resolvedConstructorOrFactoryMethod`字段
+
+    1. `autowireConstructor `带参数的实例化(`ConstructorResolver.autowireConstructor`)
+
+       - 确定构造函数的参数
+
+         - 根据`explicitArgs`参数判断 `getBean(beanName, ...args)` 这种方式获取bean时参数已经确定了
+
+         - 如果已经分析过就从缓存中获取(拿到的是初始类型，可能需要转换 "1" -> 1)
+
+         - 从配置文件中获取(可能是指定值，也可能是其他bean的引用(`resolveConstructorArguments`处理))
+
+       - 确定构造函数
+
+         根据参数个数匹配
+
+         有两种情况(index, name)，所以需要先获取参数名称
+
+         ​	`<constructor-arg index="0" value="name"/>`
+
+         ​	`<constructor-arg name="password" value="password"/>`
+
+       - 根据确定的构造函数转换对应的参数类型
+
+       - 构造函数的不确定性验证
+
+       - 实例化bean
+
+    2. `AbstractAutowireCapableBeanFactory#instantiateBean `无参构造函数的实例化
+
+        ​	直接实例化bean
+
+    3. 实例化过程
+
        `SimpleInstantiationStrategy.instantiate(RootBeanDefinition, String beanName, BeanFactory)`
-        1. 如果没有使用 replace 和 lookup 方法，直接用反射创建对象
-        2. 如果使用了，使用cglib动态代理的方式将包含两个特性对应的逻辑设置进去
 
-**记录创建bean的ObjectFactory**  
-循环依赖处理：先创建A，在填充属性(populateBean)的时候发现依赖B，去创建B同时通过ObjectFactory提供的实例化方法中断A的属性填充，B中持有的A仅仅是刚初始化没有填充属性的A(
-SmartInstantiationAwareBeanPostProcessor)
-，而这正初始化A的步骤还是在最开始创建A的时候进行的，但是因为A与B中的A所表示的属性地址是一样的，所以在A中创建好的属性填充自然可以通过B中的A获取，这样就解决了循环依赖的问题。
+        1. 如果没有使用 `replace `和 `lookup `方法，直接用反射创建对象
+        2. 如果使用了，使用`cglib`动态代理的方式将包含两个特性对应的逻辑设置进去
 
-**属性注入**  
+**记录创建bean的ObjectFactory**
+
+`earlySingletonExposure`单例 + 运行循环依赖 + 正在创建 同时满足才会记录`ObjectFactory`
+
+循环依赖处理：先创建A，在填充属性(`populateBean`)的时候发现依赖B，去创建B同时通过`ObjectFactory`提供的实例化方法中断A的属性填充，B中持有的A仅仅是刚初始化没有填充属性的A(`SmartInstantiationAwareBeanPostProcessor`)，而这正初始化A的步骤还是在最开始创建A的时候进行的，但是因为A与B中的A所表示的属性地址是一样的，所以在A中创建好的属性填充自然可以通过B中的A获取，这样就解决了循环依赖的问题。
+
+**属性注入**
+
 `AbstractAutowireCapableBeanFactory#populateBean 601`
 
 1. `InstantiationAwareBeanPostProcessor` 处理器的 `postProcessAfterInstantiation` 函数控制是否继续进行属性填充
 
-```text
-BeanPostProcessor 是 postProcessBeforeInitialization 初始化
-InstantiationAwareBeanPostProcessor 添加了 postProcessAfterInstantiation 实例化
-```
+   ```
+   BeanPostProcessor 是 postProcessBeforeInitialization 初始化
+   InstantiationAwareBeanPostProcessor 添加了 postProcessAfterInstantiation 实例化
+   ```
 
-2. 根据注入类型(名称/类型)，提取依赖的bean，统一放入PropertyValues  
-   autowireByName  
-   查找BeanWrapper中需要依赖注入的属性，遍历用getBean方法获取，放入到PropertiesValues中  
-   `AbstractAutowireCapableBeanFactory.autowireByType`  
-   查找BeanWrapper中需要依赖注入的属性，根据类型查找匹配的bean  
-   由于Spring中支持集合类型(List<XxxBean>)的注入，Spring会将所有类型匹配的对象找出来(`DefaultListableBeanFactory.resolveDependency`)注入到List  
-   先处理@Value注解，然后考虑数组类型，Collection类型，Map类型
+2. 根据注入类型(名称/类型)，提取依赖的bean，统一放入`PropertyValues`
 
-        1. 首先获取数组或集合的真实类型 Class.getComponentType (String[] -> java.lang.String)
-        2. 查找对应类型的bean，Map<beanName, Bean>
-        3. 如果required=true但是没找到，抛出异常(NoSuchBeanDefinitionException)
-        4. 通过转换器将bean的值转换成对应的类型
+   - autowireByName
+
+     查找`BeanWrapper`中需要依赖注入的属性，遍历用`getBean`方法获取(可能是开始初始化也可能是已经创建好了直接获取)，放入到`PropertiesValues`中
+
+   - autowireByType
+
+     `AbstractAutowireCapableBeanFactory.autowireByType`
+
+     查找`BeanWrapper`中需要依赖注入的属性，根据类型查找匹配的bean ;由于Spring中支持集合类型(`List<XxxBean>`)的注入，Spring会将所有类型匹配的对象找出来(`DefaultListableBeanFactory.resolveDependency`)注入到一个Set(`autowiredBeanNames`)
+
+     先处理`@Value`注解，然后考虑数组类型，`Collection`类型，Map类型
+
+     - 首先获取数组或集合的真实类型` Class.getComponentType (String[] -> java.lang.String)`
+
+     - 查找对应类型的bean，返回一个`Map<beanName, Bean>`
+
+     - 如果`required=true`但是没找到，抛出异常(`NoSuchBeanDefinitionException`)
+
+     - 通过转换器将bean的值转换成对应的类型(`Map, List, Set...`)
+
 3. 应用`InstantiationAwareBeanPostProcessor`的`postProcessPropertyValues`方法，对属性获取完毕填充前对属性再次处理
    例如 `RequiredAnnotationBeanPostProcessor`类中对属性的验证
 
