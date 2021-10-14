@@ -3,10 +3,7 @@
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
     <bean id="messageSource" class="org.springframework.context.support.ResourceBundleMessageSource">
-        <property name="basenames">
-            <list>
-                <value>config/test</value>
-            </list>
-        </property>
+        <!-- 所有的文件都必须放到resources下面，不能放到子目录否则会找不到-->
+        <property name="basename" value="messages"/>
     </bean>
 </beans>
