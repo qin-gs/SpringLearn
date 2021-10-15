@@ -347,16 +347,22 @@ lookup-method, replace-method 两个配置会统一存放在BeanDefinition的met
 
 1. 实例化前的后处理应用
 
-   `postProcessBeforeInitialization`改方法调用之后，返回的bean可能是经过代理的对象(cglib, jdk)
+   `postProcessBeforeInstantiation`改方法调用之后，返回的bean可能是经过代理的对象(cglib, jdk)
 
 2. 实例化后的后处理应用
 
-   `postProcessAfterInitialization`如果上面的bean不为空，就不会进行后面普通bean的创建过程，所以需要在这里调用后置处理方法
+   `postProcessAfterInstantiation`如果上面的bean不为空，就不会进行后面普通bean的创建过程，所以需要在这里调用后置处理方法
 
 ```text
+先执行: 
+InstantiationAwareBeanPostProcessor extends BeanPostProcessor添加了两个方法
+	postProcessBeforeInstantiation 实例化前调用
+	postProcessAfterInstantiation 实例化后调用
+
+后执行
 BeanPostProcessor接口两个方法
-    postProcessBeforeInitialization 提供一个修改BeanDefinition的机会(调用改方法后，bean可能会被改变(代理bean))
-    postProcessAfterInitialization bean创建完成后调用
+    postProcessBeforeInitialization 初始化前调用提供一个修改BeanDefinition的机会(调用改方法后，bean可能会被改变(代理bean))
+    postProcessAfterInitialization bean初始化后调用
 ```
 
 #### 5.6 循环依赖
@@ -509,23 +515,22 @@ spring容器将每一个正在创建的bean标识符放在一个容器中，如�
 
 **初始化Bean**
 
-完成bean的实例化，并进行属性填充后，开始调用init-method方法进行初始化  
+完成bean的实例化，并进行属性填充后，开始调用`init-method`方法进行初始化
+
 `AbstractAutowireCapableBeanFactory.initializeBean(beanName, Bean, RootBeanDefinition)` 改方法的做作用
 
-1. 激活Aware接口
+1. 激活Aware接口(`BeanFactoryAware, ApplicationContextAware, ResourceLoaderAware, ServletContextAware, BeanNameAware, BeanClassLoaderAware`等 )
 
-```text 
-    BeanFactoryAware, ApplicationContextAware, ResourceLoaderAware, ServletContextAware
-    BeanNameAware, BeanClassLoaderAware等 
-```
 
-2. 执行 BeanPostProcessor 的 postProcessorBeforeInitialization 方法
-3. 调用实现InitializingBean接口的afterPropertiesSet，然后调用用户自定义的init-method方法，
-4. 调用 BeanPostProcessor 的 postProcessorAfterInitialization 方法
 
-**注册DisposableBean**  
+2. 执行 `BeanPostProcessor `的 `postProcessorBeforeInitialization `方法
+3. 调用实现`InitializingBean`接口的`afterPropertiesSet`，然后调用用户自定义的`init-method`方法，
+4. 调用 `BeanPostProcessor `的 `postProcessorAfterInitialization `方法
+
+**注册DisposableBean**
+
 销毁方法的扩展入口 `AbstractBeanFactory.registerDisposableBeanIfNecessary`
-配置属性destroy-method 或实现 DestructionAwareBeanPostProcessor接口
+配置属性`destroy-method` 或实现 `DestructionAwareBeanPostProcessor`接口
 
 ### 6. 容器的功能扩展
 
@@ -580,8 +585,7 @@ ApplicationContext ac = new ClassPathXmlApplicationContext("bean-factory.xml", "
 
 #### 6.3 环境准备
 
-`prepareRefresh`
-对系统属性 和 环境变量 的初始化验证
+`prepareRefresh`对系统属性 和 环境变量 的初始化验证
 
 #### 6.4 加载BeanFactory
 
