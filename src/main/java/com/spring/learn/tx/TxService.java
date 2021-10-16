@@ -24,17 +24,18 @@ public class TxService {
     /**
      * 是线程安全的，因为不维护状态
      */
-    private final TransactionTemplate template;
+    private TransactionTemplate template;
 
     @Autowired
     private ApplicationContext context;
 
 
-    public TxService(@Qualifier("transactionManager") PlatformTransactionManager txManager) {
+    public TxService(@Qualifier("txManager") PlatformTransactionManager txManager) {
         this.txManager = txManager;
         this.template = new TransactionTemplate(txManager);
         // 可以设置一些值
         this.template.setTimeout(2 * 60);
+        this.template.setPropagationBehavior(TransactionDefinition.PROPAGATION_NEVER);
     }
 
     /**
@@ -42,6 +43,7 @@ public class TxService {
      */
     @Transactional(value = "txManager", rollbackFor = RuntimeException.class)
     public void getTest() {
+        System.out.println(dataSource.getClass());
         throw new UnsupportedOperationException();
         // 编程式回滚事务
         // TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
