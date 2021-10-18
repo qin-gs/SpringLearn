@@ -521,8 +521,6 @@ spring容器将每一个正在创建的bean标识符放在一个容器中，如�
 
 1. 激活Aware接口(`BeanFactoryAware, ApplicationContextAware, ResourceLoaderAware, ServletContextAware, BeanNameAware, BeanClassLoaderAware`等 )
 
-
-
 2. 执行 `BeanPostProcessor `的 `postProcessorBeforeInitialization `方法
 3. 调用实现`InitializingBean`接口的`afterPropertiesSet`，然后调用用户自定义的`init-method`方法，
 4. 调用 `BeanPostProcessor `的 `postProcessorAfterInitialization `方法
@@ -589,77 +587,101 @@ ApplicationContext ac = new ClassPathXmlApplicationContext("bean-factory.xml", "
 
 #### 6.4 加载BeanFactory
 
-`obtainFreshBeanFactory`
+`AbstractApplicationContext#refresh -> obtainFreshBeanFactory`
+
 委托给 `AbstractRefreshableApplicationContext.refreshBeanFactory`
-该方法完成后，ApplicationContext 会包含 BeanFactory 的所有功能
+该方法完成后，`ApplicationContext `会包含 `BeanFactory `的所有功能
 
-1. 创建 DefaultListableBeanFactory beanFactory (XmlBeanFactory 也继承该类)
-2. 指定beanFactory序列化id
-3. 定制 BeanFactory
-4. 加载 BeanDefinition
-5. 用全局变量记录beanFactory
+1. 创建 `DefaultListableBeanFactory beanFactory `(`XmlBeanFactory `也继承该类)
+2. 指定`beanFactory`序列化id
+3. 定制 `BeanFactory`
+4. 加载 `BeanDefinition`
+5. 用全局变量记录`beanFactory`
 
-**定制BeanFactory**
-`customizeBeanFactory`  
-增加是否允许覆盖同名称不同定义的对象  
-是否允许bean之间循环依赖  
-以上两项需要在子类中设置(`com.spring.learn.context.MyApplicationContext.customizeBeanFactory`)  
-并提供了 @Qualifier 和 @Autowired 支持  
-autowireByType 默认会使用Spring提供的`SimpleAutowireCandidateResolver`
+**定制BeanFactory** `customizeBeanFactory`
+
+增加是否允许覆盖同名称不同定义的对象，是否允许bean之间循环依赖
+
+以上两项需要在子类中设置(`com.spring.learn.context.MyApplicationContext.customizeBeanFactory`)
+
+并提供了 `@Qualifier` 和 `@Autowired` 支持
+
+`autowireByType `默认会使用`Spring`提供的`SimpleAutowireCandidateResolver`
+
 设置`QualifierAnnotationAutowireCandidateResolver`支持使用注解方式的注入bean
 
 **加载BeanDefinition**
-`AbstractXmlApplicationContext.loadBeanDefinitions(DefaultListableBeanFactory)`  
-初始化beanFactory(DefaultListableBeanFactory)  
-创建一个XmlBeanDefinitionReader(beanFactory)用来读取xml文件 ，设置一些环境变量，也允许子类初始化  
-创建完以上两个对象后，开始读取配置文件，完成后beanFactory中包含所有解析好的配置
+
+`AbstractXmlApplicationContext.loadBeanDefinitions(DefaultListableBeanFactory)`
+
+初始化`beanFactory(DefaultListableBeanFactory)`
+
+创建一个`XmlBeanDefinitionReader(beanFactory)`用来读取xml文件 ，设置一些环境变量，也允许子类初始化
+
+创建完以上两个对象后，开始读取配置文件，完成后`beanFactory`中包含所有解析好的配置
+
+
 
 #### 6.5 功能扩展
 
-`prepareBeanFactory`
+`AbstractApplicationContext#refresh -> prepareBeanFactory`
 
 1. 增加对SpEL语言的支持
 2. 增加对属性编辑器的支持
-3. 增加对一些内置类的信息注入(比如：EnvironmentAware, MessageSourceAware)
+3. 增加对一些内置类的信息注入(比如：`EnvironmentAware`, `MessageSourceAware`)
 4. 设置依赖功可忽略的接口
 5. 注册一些固定依赖的属性
-6. 增加AspectJ的支持
+6. 增加`AspectJ`的支持
 7. 将环境变量及属性注册以单例模式注册
 
-**增加SpEL语言的支持**  
-SpEL(Spring Expression Language)：用来在运行时构建复杂表达式，存取对象图属性，对象方法调用，配置bean定义  
+**增加SpEL语言的支持**
+
+SpEL(`Spring Expression Language` `#{...}`)：用来在运行时构建复杂表达式，存取对象图属性，对象方法调用，配置bean定义
+
 只依赖于`spring-core`模块，可单独使用
 
-`beanFactory.setBeanExpressionResolver(new StandardBeanExpressionResolver(beanFactory.getBeanClassLoader()));`注册语言解析器  
-Spring在bean初始化时会有属性填充，通过调用applyPropertyValues 完成  
-应用语言解析器主要在解析依赖注入bean的时候 和 完成bean的初始化后进行属性填充获取
+`beanFactory.setBeanExpressionResolver(new StandardBeanExpressionResolver(beanFactory.getBeanClassLoader()));`注册语言解析器
+
+Spring在bean初始化时会有属性填充，通过调用`AbstractAutowireCapableBeanFactory#applyPropertyValues `完成
+
+- 通过`BeanDefinitionValueResolver`完成属性值的解析功能
+
+- 通过`AbstractBeanFactory#evaluateBeanDefinitionString`完成spel的解析
+
+应用语言解析器主要在**解析依赖注入**bean的时候 和 完成bean的初始化后进行**属性填充**获取
 
 **增加属性注册编辑器**
-`addPropertyEditorRegistrar`
-xml中注入一些其他属性，比如Date
+
+`addPropertyEditorRegistrar`xml中注入一些其他属性，比如`Date`
 
 两种属性编辑器
 
-1. 使用自定义属性编辑器(继承PropertyEditor.Support)
-2. 使用Spring自带的属性编辑器(实现PropertyEditorRegistrar接口，重新registerCustomEditors方法)
+1. 使用自定义属性编辑器(继承`PropertyEditorSupport`)
 
-将属性编辑器注入CustomEditorConfigurer.propertyEditorRegistrars字段中
+   将属性编辑器注入`CustomeEditorConfigurer.customEditors`
 
-`ResourceEditorRegistrar.registerCustomEditors`  
-改方法注册了一系列常用类型的属性编辑器  
+2. 使用Spring自带的属性编辑器(实现`PropertyEditorRegistrar`接口，重新`registerCustomEditors`方法)
+
+   将属性编辑器注入`CustomEditorConfigurer.propertyEditorRegistrars`字段中
+
+`ResourceEditorRegistrar.registerCustomEditors`该方法注册了一系列常用类型的属性编辑器
+
 比如Class 如果某个bean中存在Class类型的属性，Spring中会调用ClassEditor将配置中定义的String类型转换成Class类型进行赋值
 
 `beanFactory.addPropertyEditorRegistrar(new ResourceEditorRegistrar(this, getEnvironment()));`
-ResourceEditorRegistrar实现批量注册功能，这里添加进去  
-AbstractBeanFactory.registerCustomEditors 方法中注册进去  
-AbstractBeanFactory.initBeanWrapper 方法调用注册(该方法将BeanDefinition转换为BeanWrapper后用于属性填充)
+
+`ResourceEditorRegistrar`实现批量注册功能，这里添加进去
+
+`AbstractBeanFactory.registerCustomEditors` 方法中注册进去
+
+`AbstractBeanFactory.initBeanWrapper `方法调用注册(该方法将`BeanDefinition`转换为`BeanWrapper`后用于属性填充)
 
 ```text
 bean的初始化后会调用ResourceEditorRegistrar.registerCustomEditors方法进行批量的通用属性编辑器注册
 注册后，在属性填充时spring可以直接使用编辑器进行属性的解析
 ```
 
-![BeanWrapper继承关系](image/BeanWrapper继承关系.png)
+![BeanWrapper继承关系](../image/BeanWrapper继承关系.png)
 
 `org.springframework.beans.PropertyEditorRegistrySupport.createDefaultEditors` 定义了一些基础类的转换
 
