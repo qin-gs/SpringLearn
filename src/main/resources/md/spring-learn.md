@@ -687,14 +687,14 @@ bean的初始化后会调用ResourceEditorRegistrar.registerCustomEditors方法�
 
 **添加ApplicationContextAwareProcessor 处理器**
 
-`org/springframework/context/support/AbstractApplicationContext.java:689`
+`AbstractApplicationContext`
 `beanFactory.addBeanPostProcessor(new ApplicationContextAwareProcessor(this));`
 
 ```text
-在bean实例化的时，当spring集合inti-method方法前后，会调用BeanPostProcessor的两个方法  
+在bean实例化时，当spring激活init-method方法前后，会调用BeanPostProcessor的两个方法  
 ```
 
-ApplicationContextAwareProcessor该接口的postProcessBeforeInitialization方法中，实现一些Aware接口的bean在被初始化后可以获取一些资源
+`ApplicationContextAwareProcessor`该接口的`postProcessBeforeInitialization`方法中，实现一些Aware接口的bean在被初始化后可以获取一些资源(以下接口这时已经被调用了)
 
 ```text
 主要设置以下的Aware接口
@@ -702,25 +702,31 @@ EnvironmentAware, EmbeddedValueResolverAware, ResourceLoaderAware, ApplicationEv
 MessageSourceAware, ApplicationStartupAware, ApplicationContextAware
 ```
 
-**设置忽略依赖**  
-上面的ApplicationContextAwareProcessor注册以后，一些属性已经填充了(上面的七个)  
+**设置忽略依赖**
+
+上面的`ApplicationContextAwareProcessor`注册以后，一些属性已经填充了(上面的七个)
+
 需要在spring做bean的依赖注入的时候忽略掉`ignoreDependencyInterface`
 
 **注册依赖**
+
 有忽略的依赖，也有注册进去的依赖`registerResolvableDependency`
 
 ```text
 BeanFactory, ResourceLoader, ApplicationEventPublisher, ApplicationContext
 ```
 
-注册了依赖解析之后，比如BeanFactory，bean属性注册的时候如果检测到属性类型为BeanFactory，就会将beanFactory实例注册进去
+注册了依赖解析之后，比如`BeanFactory`，bean属性注册的时候如果检测到属性类型为`BeanFactory`，就会将`beanFactory`实例注册进去
 
-#### 6.6 BeanFactory的后置处理
+#### 6.6 BeanFactory的后处理
 
-`postProcessBeanFactory`  
-BeanFactory存放所有已加载的bean，为了保证程序的可扩展性，spring对BeanFactory做了大量扩展(PostProcessor)
+`postProcessBeanFactory`
+
+`BeanFactory`存放所有已加载的bean，为了保证程序的可扩展性，spring对`BeanFactory`做了大量扩展(`PostProcessor`)
 
 **激活注册的BeanFactoryPostProcessor**
+
+只有一个方法`postProcessBeanFactory`
 
 ```text
 BeanFactoryPostProcessor的作用:
@@ -728,43 +734,60 @@ BeanFactoryPostProcessor的作用:
  可以实现Order接口控制多个的顺序  
  作用域是容器级的  
  
- BeanFactoryPostProcessor在bean实例化之前执行，之后实例化bean（调用构造函数，并调用set方法注入属性值），
- 然后在调用两个初始化方法前后，执行了BeanPostProcessor。
+ BeanFactoryPostProcessor在bean实例化之前执行，之后实例化bean（调用构造函数，并调用set方法注入属性值）， 然后在调用两个初始化方法前后，执行了BeanPostProcessor。
  初始化方法的执行顺序是，先执行afterPropertiesSet，再执行init-method。
 ```
 
-典型应用 **PropertyPlaceholderConfigurer**  
-用来读取配置文件中的值，用${}设置到bean中  
-该类实现了BeanFactoryPostProcessor接口  
-当spring加载实现了这个接口的bean的配置时，会在bean工厂载入所有bean的配置之后执行里面的postProcessBeanFactory方法  
-会得到配置并将得到的配置转换成合适的类型，将配置高中BeanFactory，所以BeanFactory会在实例化任何bean之前获得配置信息，去解析文件中的引用
+1. 典型应用 **PropertyPlaceholderConfigurer**
 
-![PropertyPlaceholderConfigurer继承关系](image/PropertyPlaceholderConfigurer继承关系.png)
+用来读取配置文件中的值，用`${}`设置到bean中
 
-自定义BeanFactoryPostProcessor去除一些bean中的属性值
+该类实现了`BeanFactoryPostProcessor`接口，当spring加载实现了这个接口的bean的配置时，会在bean工厂**载入所有bean的配置之后**执行里面的`postProcessBeanFactory`方法
 
-激活BeanFactoryPostProcessor
+- 得到配置
+- 将得到的配置转换成合适的类型
+- 将配置告诉`BeanFactory`，
 
-`AbstractApplicationContext.invokeBeanFactoryPostProcessors`
-对于BeanFactoryPostProcessor的处理分为两种情况，一个是BeanDefinitionRegistry类的特殊处理， 另一个是对普通BeanPostProcessor的处理    
+所以`BeanFactory`会在实例化任何bean之前获得配置信息，去解析文件中的引用
+
+![PropertyPlaceholderConfigurer继承关系](../image/PropertyPlaceholderConfigurer继承关系.png)
+
+2. 自定义`BeanFactoryPostProcessor`去除一些bean中的属性值
+
+3. 激活`BeanFactoryPostProcessor`
+
+`AbstractApplicationContext.invokeBeanFactoryPostProcessors -> PostProcessorRegistrationDelegate.invokeBeanFactoryPostProcessors`
+
+对于`BeanFactoryPostProcessor`的处理分为两种情况
+
+- `BeanDefinitionRegistry`类的特殊处理
+- 普通`BeanFactoryPostProcessor`的处理 
+
 两者都要考虑 硬编码注入 和 配置注入 两种情况，处理过程如下
 
-1. BeanDefinitionRegistry 硬编码的处理器 添加到`AbstractApplicationContext#beanFactoryPostProcessors`中  
-   其中 `BeanDefinitionRegistryPostProcessor` 继承自 `BeanFactoryPostProcessor`
-   ，还有自己定义的方法，因此需要从上面的`beanFactoryPostProcessors`
-   中选出来，调用`postProcessBeanDefinitionRegistry` 方法
+1. `BeanDefinitionRegistry `硬编码的处理器 添加到`AbstractApplicationContext#beanFactoryPostProcessors`中，其中 `BeanDefinitionRegistryPostProcessor` 继承自 `BeanFactoryPostProcessor`，还有自己定义的方法，因此需要从上面的`beanFactoryPostProcessors`中选出来，调用``postProcessBeanDefinitionRegistry` 方法
+
 2. 记录后置处理器的List
-    1. registryPostProcessors 记录通过硬编码注册的 `BeanDefinitionRegistryPostProcessor`
-    2. regularPostProcessors 记录通过硬编码注册的 `BeanFactoryPostProcessor`
-    3. registryPostProcessorBeans 记录通过配置方式注册的 `BeanDefinitionRegistryPostProcessor`
+
+    - registryPostProcessors 记录通过硬编码注册的 `BeanDefinitionRegistryPostProcessor`
+
+    - regularPostProcessors 记录通过硬编码注册的 `BeanFactoryPostProcessor`
+
+    - registryPostProcessorBeans 记录通过配置方式注册的 `BeanDefinitionRegistryPostProcessor`
+
 3. 对上面三个List里面的所有后置处理器统一调用 `postProcessBeanFactory`
+
 4. 对`beanFactoryPostProcessors`中的非`BeanDefinitionRegistryPostProcessor`调用 `postProcessBeabFactory`
+
 5. 普通beanFactory处理
 
-**注册BeanPostProcessor**  
-`registerBeanPostProcessors`  
-BeanFactory中没有实现后处理器的自动注册  
-ApplicationContext中添加了自动注册功能
+
+
+**注册BeanPostProcessor**
+
+`AbstractApplicationContext#registerBeanPostProcessors`
+
+`BeanFactory`中没有实现后处理器的自动注册，`ApplicationContext`中添加了自动注册功能
 
 1. 区分实现了`PriorityOrdered`, `Ordered`接口的`BeanPostProcessor` 和 普通的 `BeanPostProcessor`
 2. 依次注册`PriorityOrdered`, `Ordered`, `Other`, `MergedBeanDefinitionPostProcessor` 四种
@@ -773,137 +796,175 @@ ApplicationContext中添加了自动注册功能
 这里会保证注册的`beanPostProcessor`的唯一性
 
 **初始化消息资源**
-`initMessageSource`  
-![MessageSource继承关系](image/MessagSource继承关系.png)
 
-基于java.util.ResourceBundle实现
+`initMessageSource`
 
-1. ReloadableResourceBundleMessageSource 提供定时刷新功能(在不重启的情况下，更新资源信息)
-2. StaticMessageSource 用于测试
-3. DelegatingMessageSource 方便父类MessageSource提供的代理类
+![MessageSource继承关系](../image/MessagSource继承关系.png)
 
-改方法主要功能时提取配置中定义的messageSource，记录在spring容器(AbstractApplicationContext)中  
-如果用户未设置资源文件，spring会提供默认的配置DelegatingMessageSource
-`this.messageSource = beanFactory.getBean(MESSAGE_SOURCE_BEAN_NAME, MessageSource.class);`  
-用硬编码的方式规定了 id=messageSource，否则找不到自定义资源配置  
-找到以后，将自定义资源文件配置记录在容器中
+基于`java.util.ResourceBundle`实现
 
-**初始化ApplicationEventMulticaster**  
-`initApplicationEventMulticaster`
+1. `ReloadableResourceBundleMessageSource `提供定时刷新功能(在不重启的情况下，更新资源信息)
+2. `StaticMessageSource `用于测试
+3. `DelegatingMessageSource `方便操作父类`MessageSource`提供的代理类
+
+`AbstractApplicationContext#initMessageSource`该方法主要功能时提取配置中定义的`messageSource`，记录在spring容器(`AbstractApplicationContext`)中
+
+如果用户未设置资源文件，spring会提供默认的配置`DelegatingMessageSource`
+`this.messageSource = beanFactory.getBean(MESSAGE_SOURCE_BEAN_NAME, MessageSource.class);`
+
+用硬编码的方式规定了 `id='messageSource'`，否则找不到自定义资源配置；找到以后将自定义资源文件配置记录在容器中
+
+**初始化ApplicationEventMulticaster**
+
+`AbstractApplicationContext#initApplicationEventMulticaster`
+
 事件广播器(观察者)
 
 1. 如果用户自定义了事件广播器，使用用户自定义的
 2. 如果用户没有自定义，使用默认的`ApplicationEventMulticaster`
 
-广播器用于存放监听器并在合适的时候调用监听器  
+广播器用于存放监听器并在合适的时候调用监听器
+
 产生事件之后，如果使用默认的广播器，会遍历所有的监听器，使用 onApplicationEvent 方法处理
 
-**注册监听器**  
-`registerListeners`  
+**注册监听器**
+
+`AbstractApplicationContext#registerListeners`
+
 查找硬编码 和 配置文件 两种方法注册的监听器添加到广播器中
+
+
 
 #### 6.7 初始化非延迟加载单例
 
-`finishBeanFactoryInitialization`  
-完成BeanFactory的初始化工作，包括ConversionService的设置、配置冻结和非延迟加载的bean的初始化工作
+`AbstractApplicationContext#finishBeanFactoryInitialization`
+
+完成BeanFactory的初始化工作
+
+- ConversionService的设置
+- 配置冻结
+- 非延迟加载的bean的初始化工作
 
 **ConversionService的设置**
 
-1. ConversionService 设置  
-   类型转换器
-2. 冻结配置  
-   冻结bean的定义，注册的bean不允许再被修改
-3. 初始化非延迟加载  
-   `preInstantiateSingletons`  
-   ApplicationContext默认在启动时实例化所有单例bean
+1. `ConversionService `设置：注册一些类型转换器(`Converter<String, Date>`)
+2. 冻结配置：冻结bean的定义(`freezeConfiguration`)，注册的bean不允许再被修改
+3. 初始化非延迟加载：`DefaultListableBeanFactory#preInstantiateSingletons`   `ApplicationContext`默认在启动时实例化所有单例bean(就是调用`getBean(beanName)`方法)
 
 #### 6.8 finishRefresh
 
-`finishRefresh`  
-spring提供Lifecycle接口，保证启动的时候调用start方法开始生命周期，关闭时调用stop结束生命周期(用来配置一些程序，在启动后一直运行(轮询))
+`AbstractApplicationContext#finishRefresh`
 
-1. initLifecycleProcessor  
-   ApplicationContext启动或停止时，会通过LifecycleProcessor来与所有声明的bean的周期做状态更新，首先进行初始化
-2. onRefresh  
-   启动所有实现了Lifecycle接口的bean
-3. publishEvent  
-   完成ApplicationContext初始化之后，发布ContextRefreshEvent事件，监听器可以做一些逻辑处理
+spring提供`Lifecycle`接口，保证启动的时候调用start方法开始生命周期，关闭时调用stop结束生命周期(用来配置一些程序，在启动后一直运行(轮询))
+
+1. initLifecycleProcessor：`ApplicationContext`启动或停止时，会通过`LifecycleProcessor`来与所有声明的bean的周期做状态更新，首先进行初始化
+2. onRefresh：启动所有实现了`Lifecycle`接口的bean
+3. publishEvent：完成`ApplicationContext`初始化之后，发布`ContextRefreshEvent`事件，监听器可以做一些逻辑处理
 
 ### 7. AOP
 
 #### 7.1 使用实例
 
+`<aop:aspectj-autoproxy />`
+
+`@EnableAspectJAutoProxy`
+
 #### 7.2 动态aop自定义标签
 
-配置文件中加上`<aop:aspectj-autoproxy />`标签  
-`org.springframework.aop.config.AopNamespaceHandler`对该上述标签注册解析器`AspectJAutoProxyBeanDefinitionParser`
+配置文件中加上`<aop:aspectj-autoproxy />`标签
 
-**注册AspectJAutoProxyBeanDefinitionParser**  
-所有的解析器，都是对`BeanDefinitionParser`接口的实现，parse接口开始解析
+`AopNamespaceHandler`对该上述标签注册解析器`AspectJAutoProxyBeanDefinitionParser`
 
-1. 注册或升级`AopNamespaceUtils.registerAspectJAnnotationAutoProxyCreatorIfNecessary`  
-   spring自动注册AnnotationAutoProxyCreator，会根据@Point注解定义的切点自动代理相匹配的bean  
+**注册AspectJAutoProxyBeanDefinitionParser**
+
+所有的解析器，都是对`BeanDefinitionParser`接口的实现，`parse`函数开始解析
+
+1. 注册或升级`AopNamespaceUtils.registerAspectJAnnotationAutoProxyCreatorIfNecessary`
+   
+   spring自动注册`AnnotationAutoProxyCreator`，会根据`@Point`注解定义的切点自动代理相匹配的bean
+   
    如果已存在自动代理创建器 并且 和现在的不一致，需要根据优先级判断使用哪一个
-2. 处理 `proxy-target-class` 和 `expose-proxy` 属性  
-   proxy-target-class: spring会使用 jdk动态代理 和 cglib动态代理 为目标对象创建代理对象
+   
+2. 处理 `proxy-target-class` 和 `expose-proxy` 属性
+
+   `proxy-target-class`: spring会使用 jdk动态代理 和 cglib动态代理 为目标对象创建代理对象
+
     - 如果目标对象至少实现一个接口，会用jdk动态代理(在运行期间创建一个接口的实现类完成代理功能)
-    - 如果没有实现接口，会用cglib创建代理对象(使用继承，无法通知final修饰的方法，需要放入cglib对应的jar)  
-      expose-proxy 处理子调用的失效问题 处理方法
-        - expose-proxy=true
-        - this.b() -> ((AService)AopContext.currentProxy()).b()
-          ```text
-             public interface AService() {
-                void a();
-                void b();
-             }
-          
-             @Service
-             public class AServiceImpl implements AService {
-                @Transactional(propagation=Propagation.REQUIRED)
-                public void a() {
-                    this.b(); // 这个this指向的时目标对象，这里的b事务会失效
-                }
-                @Transactional(propagation=Propagation.REQUIRED)
-                public void b() {
-                }
-             }
-       ```
+    - 如果没有实现接口，会用cglib创建代理对象(使用继承，无法通知final修饰的方法，需要放入cglib对应的jar)
+
+   `expose-proxy` 处理子调用的失效问题 处理方法
+
+     - `expose-proxy=true`
+     - `this.b() -> ((AService)AopContext.currentProxy()).b()`
+       
+       ```java
+       public interface AService() {
+       	void a();
+       	void b();
+       }
+       
+       @Service
+       public class AServiceImpl implements AService {
+       	@Transactional(propagation=Propagation.REQUIRED)
+       	public void a() {
+       		this.b(); // 这个this指向的时目标对象，这里的b事务会失效
+       	}
+       	@Transactional(propagation=Propagation.REQUIRED)
+       	public void b() {
+       	}
+       }
+
 3. 注册组件并通知，便于监听器进一步处理
 
 #### 7.3 创建aop代理
 
-`AnnotationAwareAspectJAutoProxyCreator`  
-`AbstractAutoProxyCreator.postProcessAfterInitialization`  
-该类实现BeanPostProcessor接口，当spring加载这个bean时，会在实例化前调用postProcessAfterInitialization方法(在父类中)  
-真正创建代理(AbstractAdvisorAutoProxyCreator.getAdvicesAndAdvisorsForBean)
+`AnnotationAwareAspectJAutoProxyCreator`
 
-1. 获取增强方法 或 增强器  
-   获取增强方法
-    - 获取所有的增强(`findCandidateAdvisors`)
-    - 查找所有增强中适用于bean的增强并应用(`findAdvisorsThatCanApply`)  
-      如果找不到返回null
+`AbstractAutoProxyCreator.postProcessAfterInitialization`
 
-**获取增强器**  
-`AnnotationAwareAspectJAutoProxyCreator.findCandidateAdvisors`该类也继承了`AbstractAdvisorAutoProxyCreator`  
-该类有父列传获取配置文件中定义的增强 和 获取bean的注解增强  
-调用父类的方法加载xml配置文件中的aop声明(super.findCandidateAdvisors)  
-调用本类方法加载bean的增强注解(buildAspectJAdvisors)
+该类实现`BeanPostProcessor`接口，当spring加载这个bean时，会在实例化前调用`postProcessAfterInitialization`方法(在父类`AbstractAutoProxyCreator`中)
+
+真正创建代理(`AbstractAdvisorAutoProxyCreator.getAdvicesAndAdvisorsForBean`)
+
+获取普通bean的增强方法：
+
+ - 获取所有的增强(`findCandidateAdvisors`)
+
+ - 查找所有增强中适用于bean的增强并应用(`findAdvisorsThatCanApply`)
+
+如果找不到返回null
+
+**获取增强器**
+
+`AnnotationAwareAspectJAutoProxyCreator.findCandidateAdvisors`该类也继承了`AbstractAdvisorAutoProxyCreator`
+
+该类有父类获取**配置文件**中定义的增强 和 获取bean的**注解**增强
+
+- 调用父类的方法加载xml配置文件中的aop声明(`super.findCandidateAdvisors`)
+
+- 调用本类方法加载bean的增强注解(`buildAspectJAdvisors`)
 
 `BeanFactoryAspectJAdvisorsBuilder.buildAspectJAdvisors`
 
-1. 获取所有的beanName(所有beanFactory中注册的bean)
-2. 遍历beanName， 找出声明@AspectJ的类
+1. 获取所有的`beanName`(所有`beanFactory`中注册的bean)
+2. 遍历`beanName`， 找出声明`@AspectJ`的类
 3. 对找出来的类进行增强器提取
    `ReflectiveAspectJAdvisorFactory.getAdvisors`
+   
     1. 获取普通增强器
-        - 对切点注解信息的获取(`ReflectiveAspectJAdvisorFactory.getPointcut`)  
+        - 对切点注解信息的获取(`ReflectiveAspectJAdvisorFactory.getPointcut`)
+          
           主要搜索以下注解`Pointcut.class, Around.class, Before.class, After.class, AfterReturning.class, AfterThrowing.class`
-        - 根据切点信息生成增强器(`ReflectiveAspectJAdvisorFactory.java:213`)  
-          所有的增强都由Advisor的实现类InstantiationModelAwarePointcutAdvisorImpl封装(`ReflectiveAspectJAdvisorFactory.java:213`)  
+          
+        - 根据切点信息生成增强器(`ReflectiveAspectJAdvisorFactory#getAdvisor返回增强器`)
+          
+          所有的增强都由Advisor的实现类`InstantiationModelAwarePointcutAdvisorImpl`封装(`ReflectiveAspectJAdvisorFactory`)
+          
           同时完成增强器的初始化，@Before @After等增强位置不同，instantiateAdvice创建不同的增强器(`ReflectiveAspectJAdvisorFactory.getAdvice`)
           (`AspectJAroundAdvice, AspectJMethodBeforeAdvice, AspectJAfterAdvice, AspectJAfterReturningAdvice, AspectJAfterThrowingAdvice`)
-
-          实现逻辑 `MethodBeforeAdviceInterceptor`  
+          
+          实现逻辑 `MethodBeforeAdviceInterceptor`
+          
           `AbstractAspectJAdvice.invokeAdviceMethodWithGivenArgs`
           前置增强：在拦截器链中放置`MethodBeforeAdviceInterceptor`，在其中又放置了`AspectJMethodBeforeAdvice`，在invoke方法时串联调用
           后置增强：直接在拦截器链中使用`AspectJAfterAdvice`
@@ -911,7 +972,7 @@ spring提供Lifecycle接口，保证启动的时候调用start方法开始生命
        如果寻找的增强器不为空并配置了增强延迟初始化
     3. 获取DeclareParents注解  
        为一个对象增加新的方法 `DeclareParentsAdvisor`
-
+   
 4. 将提取结果放入缓存
 
 **寻找匹配的增强器**  
