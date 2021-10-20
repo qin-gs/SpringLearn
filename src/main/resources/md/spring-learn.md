@@ -12,7 +12,7 @@
 
    `XmlBeanFactory `使用自定义的xml读取器(`XmlBeanDefinitionReader`)，实现个性化的`BeanDefinitionReader`读取
 
-   ![image-20211012105152365](../image/DefaultListableBeanFactory继承关系.png)
+   ![DefaultListableBeanFactory继承关系](../image/DefaultListableBeanFactory继承关系.png)
 
 2. `XmlBeanDefinitionReader `完成资源文件的读取解析注册功能
 
@@ -960,7 +960,7 @@ spring提供`Lifecycle`接口，保证启动的时候调用start方法开始生�
           
           所有的增强都由Advisor的实现类`InstantiationModelAwarePointcutAdvisorImpl`封装(`ReflectiveAspectJAdvisorFactory`)
           
-          同时完成增强器的初始化，@Before @After等增强位置不同，instantiateAdvice创建不同的增强器(`ReflectiveAspectJAdvisorFactory.getAdvice`)
+          同时完成增强器的初始化，`@Before @After`等增强位置不同，`instantiateAdvice`创建不同的增强器(`ReflectiveAspectJAdvisorFactory.getAdvice`)
           (`AspectJAroundAdvice, AspectJMethodBeforeAdvice, AspectJAfterAdvice, AspectJAfterReturningAdvice, AspectJAfterThrowingAdvice`)
           
           实现逻辑 `MethodBeforeAdviceInterceptor`
@@ -968,78 +968,116 @@ spring提供`Lifecycle`接口，保证启动的时候调用start方法开始生�
           `AbstractAspectJAdvice.invokeAdviceMethodWithGivenArgs`
           前置增强：在拦截器链中放置`MethodBeforeAdviceInterceptor`，在其中又放置了`AspectJMethodBeforeAdvice`，在invoke方法时串联调用
           后置增强：直接在拦截器链中使用`AspectJAfterAdvice`
-    2. 配置中可能将增强配置成延迟初始化，需要在首位加入同步实例化增强器保证增强使用之前的实例化  
-       如果寻找的增强器不为空并配置了增强延迟初始化
-    3. 获取DeclareParents注解  
-       为一个对象增加新的方法 `DeclareParentsAdvisor`
+        
+    2. 配置中可能将增强配置成延迟初始化，如果寻找的增强器不为空并配置了增强延迟初始化，需要在首位加入同步实例化增强器保证增强使用之前的实例化(`SyntheticInstantiationAdvisor`)
+       
+    3. 获取`DeclareParents`注解
+   
+       为一个对象增加新的方法(引介增强)，通过 `DeclareParentsAdvisor`进行功能封装
    
 4. 将提取结果放入缓存
 
-**寻找匹配的增强器**  
+**寻找匹配的增强器**
+
 `AbstractAdvisorAutoProxyCreator.findAdvisorsThatCanApply`
 
-上面解析出了所有的增强器，对每个bean挑选出合适(通配符)的增强器  
-先处理引介增强(IntroductionAdvisor)，然后处理普通增强；两者的匹配逻辑不同分开处理
+上面解析出了所有的增强器，对每个bean挑选出合适(通配符)的增强器
+
+先处理引介增强(`IntroductionAdvisor`)，然后处理普通增强；两者的匹配逻辑不同分开处理
 
 **创建代理**
-`AbstractAutoProxyCreator.createProxy`  
-代理类的创建交给ProxyFactory处理，先进行ProxyFactory的初始化
+
+获取到对应bean的增强器之后，创建代理对象`AbstractAutoProxyCreator.createProxy`
+
+代理类的创建交给`ProxyFactory`处理，先进行`ProxyFactory`的初始化
 
 1. 获取当前类中的属性
 2. 添加代理接口
-3. 封装成Advisor加入到ProxyFactory
-    - 先将拦截器封裝成增强器(`AbstractAutoProxyCreator.buildAdvisors`)
+3. 封装成`Advisor`加入到`ProxyFactory`
+    - 先将拦截器封装成增强器(`AbstractAutoProxyCreator.buildAdvisors`)
     - 然后放入代理工厂(`AbstractAutoProxyCreator.java:464`) spring中设计过多的拦截器、增强器、增强方法对逻辑进行增强，因此需要统一封装成Advisor创建代理
 4. 设置要代理的类
-5. 子类可以进一步扩展 customizeProxyFactory
+5. 子类可以进一步扩展 `customizeProxyFactory`
 6. 获取代理
 
-真正创建代理  
-`DefaultAopProxyFactory.createAopProxy`  
-选中jdk动态代理 或 cglib
+真正创建代理
 
-```text
-jdk动态代理只能对实现类接口的类生成代理
-cglib针对类生成代理，对制定类生成一个子类，覆盖其中的方法，final方法不能被代理
-```
+![AopProxy继承关系](../image/AopProxy继承关系.png)
 
-1. ~~optimize~~
-2. proxyTargetClass 设置`<aop:aspectj-autoproxy proxy-target-class="true"/>` 使用cglib
-3. hasNoUserSuppliedProxyInterfaces 是否存在代理接口
+`DefaultAopProxyFactory.createAopProxy`选择jdk动态代理 或 cglib
+
+- jdk动态代理只能对实现类接口的类生成代理
+- cglib针对类生成代理，对指定类生成一个子类，覆盖其中的方法，final方法不能被代理
+
+选择代理方式：
+
+1. ~~`optimize`不推荐~~
+2. `proxyTargetClass `设置`<aop:aspectj-autoproxy proxy-target-class="true"/>` 使用cglib
+3. `hasNoUserSuppliedProxyInterfaces `是否存在代理接口
 
 获取代理
 
-1. jdk动态代理，实现流程
-    - 重新构造函数，传入目标对象
+1. jdk动态代理(`InvocationHandler`)，实现流程
+    - 通过构造函数，传入目标对象
     - invoke方法，完成aop逻辑
     - getProxy 获取代理对象
 
-`JdkDynamicAopProxy.invoke`
+    `JdkDynamicAopProxy.invoke`
 
-1. 放过equals， hashCode等方法
-2. 目标对象的内部自我调用无法实施切面中的增强，需要暴露代理(`AopContext.setCurrentProxy`)
-3. 获取当前方法的拦截链(`ReflectiveMethodInvocation`)，依次调用(`proceed`)  
-   只是记录链接调用的计数器，记录当前调用链接的位置，保证有序进行
-4. 返回结果
+    - 放过`equals, hashCode`等方法
+
+    - 目标对象的内部自我调用无法实施切面中的增强，需要暴露代理(`AopContext.setCurrentProxy`)
+
+    - 获取当前方法的拦截链(`ReflectiveMethodInvocation`)，调用(`proceed`)
+
+      只是记录链接调用的计数器，记录当前调用链接的位置，递归调用`proceed`方法保证有序进行
+
+      - 普通拦截器，直接调用`invoke`方法
+      - `InterceptorAndDynamicMethodMatcher `调用里面的拦截器的方法
+
+    - 返回结果
 
 
-2. cglib代理  
+2. cglib代理 
+   
    `CglibAopProxy.getProxy(java.lang.ClassLoader)`
-   创建Enhancer，通过getCallbacks设置拦截器链(`DynamicAdvisedInterceptor`)  
-   DynamicAdvisedInterceptor 继承 MethodIntercept
+   
+   创建`Enhancer`，通过`getCallbacks`设置拦截器链(`DynamicAdvisedInterceptor`)
+   
+   ![cglib动态代理的callback](../image/cglib动态代理的callback.png)
+   
+   `DynamicAdvisedInterceptor `继承 `MethodIntercept`
+   
    ```text
-      MethodIntercept接口的invoke方法: 先构造拦截器链，然后封装进行串联调用  
+   MethodIntercept接口的invoke方法: 先构造拦截器链，然后封装进行串联调用  
        jdk动态代理： 直接构造ReflectiveMethodInvocation  
-       cglib代理：使用CglibMethodInvocation(extends ReflectiveMethodInvocation, 没有重写process方法)
+       cglib代理：使用CglibMethodInvocation(extends ReflectiveMethodInvocation, 没有重写proceed方法)
+       
+   proceed方法会记录当前调用链接的位置，递归调用所有i拦截器的invoke方法
    ```
+
+![动态代理的拦截器链](../image/动态代理的拦截器链.png)
 
 #### 7.4 静态aop使用
 
+​	加载时织入(load-time weaving)：虚拟机载入字节码文件时动态织入`AspectJ`切面
+
 #### 7.5 创建aop静态代理
 
-### 8. 数据库连接jdbc
+​	Aop的静态代理(效率高)是在虚拟机启动时通过改变目标对象的字节码来完成对目标对象的增强
+
+
+
+### 8. 数据库连接JDBC
 
 #### 8.1 spring使用jdbc连接数据库代码
+
+- 加载驱动
+- 创建数据库连接对象Connection
+- 创建Statement
+- 执行sql
+- 处理结果集ResultSet
+- 关闭连接
 
 #### 8.2 insert/update功能实现
 
@@ -1053,72 +1091,187 @@ update(new SimplePreparedStatementCreator(sql), pss);
 
 execute方法是最基础的操作，其他操作(update, query)都是传入不同的`PreparedStatementCallback`参数执行不同的逻辑
 
-**execute方法逻辑**  
-接收两个参数
-`execute(PreparedStatementCreator psc, PreparedStatementCallback<T> action)`
+**execute方法逻辑**
 
-1. 获取数据库连接  
-   `JdbcTemplate.getConnection:646`  
+接收两个参数
+
+`JdbcTemplate#execute(PreparedStatementCreator psc, PreparedStatementCallback<T> action)`
+
+1. 获取数据库连接`JdbcTemplate.getConnection`
+
    基于事务处理的特殊性，spring需要保证线程中的数据库操作采用同一个事务连接
-2. 应用用户设定的输入参数  
-   `JdbcTemplate.applyStatementSettings:650`  
-   setFetchSize: 当调用rs.next时，ResultSet会一次性从服务器中取多少行数据回来，下次rs.next时直接从内存中获取不需要网络交后，提高效率  
-   改值可能会被某些jdbc驱动忽略，设置过大会造成内存上升  
-   setMaxRows: 将Statement对象生成的所有ResultSet对象可以包含的最大行数限制设置为给定数
-3. 调用回调函数  
-   `JdbcTemplate.doInPreparedStatement:651`
-   处理 `PreparedStatementCallback` 类型的参数的 `doInPreparedStatement` 方法回调  
-   用于调用通用方法execute的时候无法处理的一些个性化处理方法  
+
+2. 应用用户设定的输入参数
+
+   `JdbcTemplate#applyStatementSettings`
+
+   - `setFetchSize`: 当调用`rs.next`时，`ResultSet`会一次性从服务器中取多少行数据回来，下次`rs.next`时直接从内存中获取不需要网络交后，提高效率；该值可能会被某些jdbc驱动忽略，设置过大会造成内存上升
+
+   - `setMaxRows`: 将`Statement`对象生成的所有`ResultSet`对象可以包含的最大行数限制设置为给定数
+
+3. 调用回调函数
+
+   `JdbcTemplate#doInPreparedStatement`
+   处理 `PreparedStatementCallback` 类型的参数的 `doInPreparedStatement` 方法回调
+
+   用于调用通用方法execute的时候无法处理的一些个性化处理方法
+
    `ArgumentPreparedStatementSetter.setValues` // 设置PreparedStatement需要的全部参数
-   `ArgumentTypePreparedStatementSetter.setValues` // 设置PreparedStatement需要的全部参数  
+   `ArgumentTypePreparedStatementSetter.setValues` // 设置PreparedStatement需要的全部参数
+
    遍历每个参数做类型匹配和转换，如果是集合需要进入内部递归解析内部属性
-4. 警告处理  
-   `JdbcTemplate.handleWarnings:652`
-   SQLWarning对象提供数据库访问警告信息的异常(DataTruncation)  
-   警告可以从Connection, Statement, ResultSet中获得
-5. 资源释放  
-   `JdbcTemplate.releaseConnection:665`
-   需要考虑存在事务的情况
-    - 如果当线程存在事务，说明共用数据库连接，只会 ConnectionHolder的released方法进行连接数减1，不会真正的释放连接
+
+4. 警告处理
+
+   `JdbcTemplate#handleWarnings`
+
+   `SQLWarning`对象提供数据库访问警告信息的异常(`DataTruncation`)，警告可以从`Connection, Statement, ResultSet`中获得
+
+5. 资源释放
+
+   `JdbcTemplate#releaseConnection`
+   如果当线程存在事务，说明共用数据库连接，只会调用`ConnectionHolder#released`方法进行连接数减1，不会真正的释放连接
+
+   如果不存在事务就直接close
+
+**update中的回调函数**
+
+`PreparedStatementCallback`
+
+`ArgumentTypePreparedStatementSetter`
+
+```java
+protected int update(final PreparedStatementCreator psc, final PreparedStatementSetter pss)
+      throws DataAccessException {
+
+   logger.debug("Executing prepared SQL update");
+   return execute(psc, new PreparedStatementCallback<Integer>() {
+      @Override
+      public Integer doInPreparedStatement(PreparedStatement ps) throws SQLException {
+         try {
+            if (pss != null) {
+               pss.setValues(ps); // 设置PreapredStatement需要的参数，pss具体是ArgumentTypePreparedStatementSetter
+            }
+            int rows = ps.executeUpdate();
+            if (logger.isDebugEnabled()) {
+               logger.debug("SQL update affected " + rows + " rows");
+            }
+            return rows;
+         }
+         finally {
+            if (pss instanceof ParameterDisposer) {
+               ((ParameterDisposer) pss).cleanupParameters();
+            }
+         }
+      }
+   });
+}
+
+String sql = "insert into user(name, age, gender) values (?, ?, ?)";
+
+原生jdbc执行update语句:
+PreparedStatement ps = conn.prepareStatement(sql);
+ps.setString(1, user.getName());
+ps.setInt(2, user.getAge());
+ps.setString(3, user.getGender());
+
+spring封装后:
+new JdbcTemplate().update(sql,
+		new Object[]{user.getName(), user.getAge(), user.getGender()},
+		new int[]{Types.VARCHAR, Types.INTEGER, Types.VARCHAR});
+```
 
 #### 8.3 query功能实现
 
-`JdbcTemplate.query(PreparedStatementCreator, PreparedStatementSetter, ResultSetExtractor<T>)`  
-`newArgTypePreparedStatementSetter`  
-PreparedStatementCallback 的实现中使用的是 executeQuery  
-返回方法中 RowMapperResultSetExtractor.extractData 将结果封装转换成pojo，使用RowMapper进行转换
+1. 如果sql语句有占位符`?`
 
-如果sql语句没有占位符  
+`JdbcTemplate.query(PreparedStatementCreator, PreparedStatementSetter, ResultSetExtractor<T>)`
+
+```java
+public <T> T query(
+      PreparedStatementCreator psc, final PreparedStatementSetter pss, final ResultSetExtractor<T> rse)
+      throws DataAccessException {
+
+   Assert.notNull(rse, "ResultSetExtractor must not be null");
+   logger.debug("Executing prepared SQL query");
+
+   return execute(psc, new PreparedStatementCallback<T>() {
+      @Override
+      public T doInPreparedStatement(PreparedStatement ps) throws SQLException {
+         ResultSet rs = null;
+         try {
+            if (pss != null) {
+               pss.setValues(ps);
+            }
+            rs = ps.executeQuery(); // 执行查询
+            ResultSet rsToUse = rs;
+            if (nativeJdbcExtractor != null) {
+               rsToUse = nativeJdbcExtractor.getNativeResultSet(rs);
+            }
+            return rse.extractData(rsToUse); // 将结果集封装转换POJO，rse具体是RowMapperResultSetExtractor
+         }
+         finally {
+            JdbcUtils.closeResultSet(rs);
+            if (pss instanceof ParameterDisposer) {
+               ((ParameterDisposer) pss).cleanupParameters();
+            }
+         }
+      }
+   });
+}
+```
+
+`newArgTypePreparedStatementSetter` 
+
+2. 如果sql语句没有占位符
+
 `JdbcTemplate.query(String, ResultSetExtractor<T>)`
-execute 方法中 Statement 的创建(stmt = con.createStatement();) -> Statement  
-有占位符时使用 PreparedStatementCreator 创建 -> PreparedStatement
+
+`execute `方法中 `Statement `的创建(`stmt = con.createStatement();`) -> `Statement`
+
+有占位符时使用 `PreparedStatementCreator `创建 -> `PreparedStatement`
 
 #### 8.4 queryForObject
 
-对返回结果进行了封装
+使用`SingleColumnRowMapper`对返回结果进行封装。取出返回结果中的第一个值转换成对应的类型
+
+
 
 ### 9. 整合mybatis
 
 #### 9.1 mybatis单独使用
 
+​	`SqlSessionFactoryBuilder -> SqlSesionFactory -> SqlSession -> session.getMapper`
+
 #### 9.2 spring整合mybatis
+
+​	`SqlSessionFactoryBean + MapperFactoryBean`
 
 #### 9.3 源码分析
 
 **sqlSessionFactory创建**
-SqlSessionFactoryBean封装了Mybatis的实现
 
-```text
+`SqlSessionFactoryBean`封装了Mybatis的实现
+
+![SqlSessionFactoryBean继承关系](../image/SqlSessionFactoryBean继承关系.png)
+
 该类实现三个接口 
-1. FactoryBean 通过getBean方法获得的对象时 getObject 返回的，否则需要加`&`符号
-2. InitializingBean 会在初始化时调用afterPropertiesSet方法进行bean的逻辑初始化
-3. ApplicationEvent 
-```
 
-1. `SqlSessionFactoryBean`的初始化  
-   `afterPropertiesSet`中初始化`sqlSessionFactory`对象  
-   可以通过`configLocation`一个字段，直接引用mybatis的配置文件  
+- `FactoryBean `通过`getBean`方法获得的对象时 `getObject `返回的，否则需要加`&`符号
+
+- `InitializingBean `会在初始化时调用`afterPropertiesSet`方法进行bean的逻辑初始化
+
+- `ApplicationEvent `
+
+1. `SqlSessionFactoryBean`的初始化
+
+   `afterPropertiesSet`中初始化`sqlSessionFactory`对象
+
+   可以通过`configLocation`一个字段，直接引用mybatis的配置文件
+
    同时spring也直接整合了mybatis中其他属性的注入，可以不用`configLocation`字段，直接注入属性
+
+2. 获取`SqlSessionFactoryBean`实例：会返回`SqlSesionFactory`对象
 
 **MapperFactoryBean创建**
 
@@ -1129,45 +1282,63 @@ SqlSessionFactoryBean封装了Mybatis的实现
 MapperFactoryBean 实现了两个接口 InitializingBean, FactoryBean
 ```
 
-1. 初始化(`afterPropertiesSet`)  
+1. 初始化(`afterPropertiesSet`)
+
    `MapperFactoryBean.checkDaoConfig`
-    1. 父类验证sqlSession(根据接口创建映射器代理)不为空，初始化工作时设定sqlSessionFactory属性时完成的
-    2. 映射接口的验证(接口是映射器的基础，sqlSession会根据接口动态创建代理类)
-    3. 映射文件存在性验证(检查映射接口是否存在映射文件)
-2. 获取MapperFactoryBean  
+
+   - 父类验证`sqlSession`(根据接口创建映射器代理)不为空，初始化工作时设定`sqlSessionFactory`属性时完成的
+
+   - 映射接口的验证(接口是映射器的基础，`sqlSession`会根据接口动态创建代理类)
+
+   - 映射文件存在性验证(检查映射接口是否存在映射文件)
+
+2. 获取`MapperFactoryBean`
+
    该类实现类`FactoryBean`接口，通过`getBean`获取时会调用`getObject`函数返回
-   ```text
-     @Override
-     public T getObject() throws Exception {
+
+   ```java
+   @Override
+   public T getObject() throws Exception {
        return getSqlSession().getMapper(this.mapperInterface);
-     }
+   }
    ```
 
 **MapperScannerConfigurer**
 
-```text
 扫描特定包，创建映射器
-InitializingBean 接口:只验证了包名不能为空
-BeanFactoryPostProcessor 没有任何处理
-BeanDefinitionRegistryPostProcessor.postProcessBeanDefinitionRegistry 完成对指定路径的扫描
-```
+
+![MapperScannerConfigurer继承关系](../image/MapperScannerConfigurer继承关系.png)
+
+- `InitializingBean `接口：只验证了包名不能为空
+- `BeanFactoryPostProcessor `：没有任何处理
+- `BeanDefinitionRegistryPostProcessor.postProcessBeanDefinitionRegistry` 完成对指定路径的扫描
 
 1. `MapperScannerConfigurer.processPropertyPlaceHolders` 完成属性文件加载
-   BeanDefinitionRegistries会在应用启动的时候调用，早于BeanFactoryPostProcessors  
-   `PropertyResourceConfigurers`还没有加载属性文件，因此手动找出定义的`PropertyResourceConfigurers`并进行调用保证属性可以正常工作
-    1. 找到所有哦已注册的`PropertyResourceConfigurers`
-    2. 模拟spring中的环境使用处理器；找到bean中引入的属性文件中的属性进行替换
+
+   `BeanDefinitionRegistries`会在应用启动的时候调用，早于`BeanFactoryPostProcessors(PropertyPlaceholderConfigurer)`
+
+   `PropertyResourceConfigurers`还没有加载属性文件，因此手动找出定义的
+
+   `PropertyResourceConfigurers`并进行调用保证属性可以正常工作
+
+    1. 找到所有已经注册的`PropertyResourceConfigurers`
+    2. 模拟spring中的环境(自己`new DefaultListableBeanFactory()`)使用处理器；找到bean中引入的属性文件中的属性进行替换
+
 2. 根据配置属性生成过滤器
-    1. annotationClass：AnnotationTypeFilter保证扫描文件时只接受标记有注解为annotationClass的接口
-    2. markerInterface：AssignableTypeFilter保证扫描文件时只接受实现markerInterface接口的接口
-       (这两个都放入`ClassPathScanningCandidateComponentProvider.includeFilters`)
-    3. 全局默认处理：TypeFilter如果以上两个没有配置，会接受所有
-    4. package-info.java处理：默认不作为逻辑实现接口(放入`ClassPathScanningCandidateComponentProvider.excludeFilters`)
+    1. `annotationClass`：`AnnotationTypeFilter`保证扫描文件时只接受标记有注解为`annotationClass`的接口。`AnnotationTypeFilter`包装扫描对应java文件时只接受有指定注解的接口
+
+    2. `markerInterface`：`AssignableTypeFilter`保证扫描文件时只接受实现`markerInterface`接口的接口。`AssignableTypeFilter`包装扫描对应java文件时只接受实现指定接口的类
+
+       (以上两个都放入`ClassPathScanningCandidateComponentProvider.includeFilters`)
+
+    3. 全局默认处理：`TypeFilter`如果以上两个没有配置，会接受所有接口文件
+
+    4. `package-info.java`处理：默认不作为逻辑实现接口(放入`ClassPathScanningCandidateComponentProvider.excludeFilters`)
+
 3. 扫描java文件
+
    `ClassPathBeanDefinitionScanner.scan`
-   `doScan`中`findCandidateComponents`方法根据传入的包路径信息结合文件路径拼接成文件绝对路径，同时完成文件扫描过程
-   并根据对应文件生成对应的bean，使用`ScannedGenericBeanDefinition`类型的bean承载信息，bean中只记录了resource和source信息
-   `iscandidateComponent`方法判断当前文件是否符合要求(使用上面的`includeFilters`, `excludeFilters`)
+   `doScan`中`findCandidateComponents`方法根据传入的包路径信息结合文件路径拼接成文件绝对路径，同时完成文件扫描过程，并根据对应文件生成对应的bean，使用`ScannedGenericBeanDefinition`类型的bean承载信息，bean中只记录了resource和source信息，`iscandidateComponent`方法判断当前文件是否符合要求(使用上面的`includeFilters`, `excludeFilters`)
 
 ### 10. 事务
 
