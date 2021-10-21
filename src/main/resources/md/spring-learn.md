@@ -1346,26 +1346,43 @@ MapperFactoryBean 实现了两个接口 InitializingBean, FactoryBean
 
 #### 10.2 事务自定义标签
 
-`<tx:annotation-driven/>`  
-`TxNamespaceHandler`的`init`方法中注册`AnnotationDrivenBeanDefinitionParser`使用`AnnotationDrivenBeanDefinitionParser.parse`
-方法进行解析  
+`<tx:annotation-driven/>`
+
+`TxNamespaceHandler`的`init`方法中注册`AnnotationDrivenBeanDefinitionParser`使用`AnnotationDrivenBeanDefinitionParser.parse`方法进行解析
+
 `parse`方法找先判断`mode`属性，是使用`Spring aop`还是`aspectj`
 
 **注册`InfrastructureAdvisorAutoProxyCreator`**
-`AnnotationDrivenBeanDefinitionParser.AopAutoProxyConfigurer.configureAutoProxyCreator`  
+
+`AnnotationDrivenBeanDefinitionParser.AopAutoProxyConfigurer#configureAutoProxyCreator`
+
 创建并注册三个bean
 
-```text
-1. TransactionAttributeSource  
-2. TransactionInterceptor  
-3. TransactionAttributeSourceAdvisor  
-将1, 2注入3中
-```
+- TransactionAttributeSource  
+
+- TransactionInterceptor  
+
+- TransactionAttributeSourceAdvisor
+
+  将1, 2注入3中
 
 `AnnotationDrivenBeanDefinitionParser#registerTransactionalEventListenerFactory`
 方法中注册了`InfrastructureAdvisorAutoProxyCreator`
 
-`CompositeComponentDefinition`
+![InfrastructureAdvisorAutoProxyCreator](../image/InfrastructureAdvisorAutoProxyCreator继承关系.png)
+
+`InstanitationAwareBeanPostProcessor`保证该类会在bean实例化前后调用`postProcessBeforeInstantiation, postProcessAfterInstantiation`，在父类`AbstractAutoProxyCreator`中进行了实现
+
+对指定bean进行封装(`wrapIfNecessary`)
+
+- 找出指定bean对应的增强器
+- 根据找出的增强器创建代理
+
+
+
+**获取对应class/method的增强器**
+
+
 
 ### 11. SpringMvc
 
