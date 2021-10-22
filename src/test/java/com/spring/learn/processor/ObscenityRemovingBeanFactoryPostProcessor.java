@@ -27,6 +27,7 @@ public class ObscenityRemovingBeanFactoryPostProcessor implements BeanFactoryPos
         String[] beanNames = beanFactory.getBeanDefinitionNames();
         for (String beanName : beanNames) {
             BeanDefinition beanDefinition = beanFactory.getBeanDefinition(beanName);
+            // 创建一个StringValueResolver(是函数式接口，可以用方法引用)
             StringValueResolver resolver = this::resolveStringValue;
             BeanDefinitionVisitor visitor = new BeanDefinitionVisitor(resolver);
             visitor.visitBeanDefinition(beanDefinition);

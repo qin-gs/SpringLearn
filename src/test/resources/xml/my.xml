@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:myname="http://www.userxsd.com/schema/user"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://www.userxsd.com/schema/user http://www.userxsd.com/schema/user.xsd">
+
+    <!--上面的url 文件在本地找不到会尝试去远程去找，spring.handlers spring.schemas-->
+
+    <!--使用自定义的标签(有问题，只是示例)-->
+    <myname:user id="test" userName="name" password="123"/>
+</beans>

@@ -240,6 +240,42 @@ spring初始化时，会用`GenericBeanDefinition`或是`ConfigurationClassBeanD
 
 `BeanDefinitionParserDelegate.parseCustomElement(org.w3c.dom.Element)`
 
+#### 4.1 自定义标签的使用
+
+- 自定义xsd文件描述组件内容
+- 创建类实现`BeanDefinitionParser`用来解析xsd文件的定义和组件定义
+- 创建类实现`NamespacehandlerSuppport`，将组件注册到spring容器
+- 编写`spring.handlers, spring.schemas`放到`META-INF`文件夹下面
+
+加载自定义标签的流程：
+
+遇到自定义标签之后去`spring.handlers`和`spring.schemas`中找对应的handler和xsd，默认位置是META-INF，找到对应的handler和解析元素的Parser，完成自定义元素的解析spring将自定义标签的解析工资委托给用户实现
+
+#### 4.2 自定义标签解析
+
+- 获取对应的命名空间：w3c提供命名空间的获取
+
+- 根据命名空间找到对应的`NamespaceHandler`进行解析`DefaultNamespaceHandlerResolver#resolve`
+
+  获取所有已经配置的handler映射(`DefaultNamespaceHandlerResolver#getHandlerMappings`)
+
+  根据命名空间找到对应的信息
+
+  - 如果已做过解析直接从缓存中读取
+  - 没有做过解析返回的时类路径，用反射将类路径转换成类，初始化类，调用init方法初始化对象，记录到缓存中
+
+- 调用自定义的`NamespaceHandlerSupport#parse`进行解析
+
+  - 寻找解析器
+
+    获取元素名称(`<myname:user ...>`的名称是user)，找到解析器(在自定义的类中已经进行了注册)
+
+  - 解析操作
+
+    解析标签(`AbstractSingleBeanDefinitionParser#parseInternal`)，处理`beanClass, scope, lazyInit`等，然后调用用户自己定义的parse方法，最后将解析好的`AnstractBeanDefinition`转换成`BeanDefinitionHolder`
+
+
+
 ### 5. bean的加载
 
 1. beanName转换(别名的情况)
@@ -1344,6 +1380,18 @@ MapperFactoryBean 实现了两个接口 InitializingBean, FactoryBean
 
 #### 10.1 jdbc使用事务
 
+事务传播行为
+
+| 事务传播行为  | 是否支持当前事务 | 当前存在事务 | 当前不存在事务 |
+| :------------ | :--------------: | :----------- | :------------- |
+| required      |        √         | 加入         | 创建           |
+| supports      |        √         | 加入         | 不创建         |
+| mandatory     |        √         | 加入         | 抛异常         |
+| requires_new  |                  | 挂起，创建   | 创建           |
+| not_supported |                  | 挂起         | 不创建         |
+| never         |                  | 抛异常       | 不创建         |
+| nested        |                  | 嵌套创建事务 | required       |
+
 #### 10.2 事务自定义标签
 
 `<tx:annotation-driven/>`
@@ -1360,29 +1408,214 @@ MapperFactoryBean 实现了两个接口 InitializingBean, FactoryBean
 
 - TransactionAttributeSource  
 
-- TransactionInterceptor  
+- TransactionInterceptor(事务增强器(拦截器)invoke方法完成整个事务的逻辑)
 
 - TransactionAttributeSourceAdvisor
 
   将1, 2注入3中
 
 `AnnotationDrivenBeanDefinitionParser#registerTransactionalEventListenerFactory`
-方法中注册了`InfrastructureAdvisorAutoProxyCreator`
+方法第一行中注册了`InfrastructureAdvisorAutoProxyCreator`
 
 ![InfrastructureAdvisorAutoProxyCreator](../image/InfrastructureAdvisorAutoProxyCreator继承关系.png)
 
-`InstanitationAwareBeanPostProcessor`保证该类会在bean实例化前后调用`postProcessBeforeInstantiation, postProcessAfterInstantiation`，在父类`AbstractAutoProxyCreator`中进行了实现
+`InstanitationAwareBeanPostProcessor`保证该类会在bean初始化前后调用`postProcessBeforeInitialization, postProcessAfterInitialization`，在父类`AbstractAutoProxyCreator`中进行了实现
 
 对指定bean进行封装(`wrapIfNecessary`)
 
-- 找出指定bean对应的增强器
-- 根据找出的增强器创建代理
-
-
+- 找出指定bean对应的增强器(`AbstractAdvisorAutoProxyCreator#findCandidateAdvisors`)
+- 根据找出的增强器创建代理(`AbstractAdvisorAutoProxyCreator#findAdvisorsThatCanApply`)
 
 **获取对应class/method的增强器**
 
+`AbstractAdvisorAutoProxyCreator#getAdvicesAndAdvisorsForBean`方法
 
+- 获取增强器
+
+  ```java
+  // 是否也包含原型或作用域 bean 或仅包含单例
+  // 是否初始化factory-bean
+  BeanFactoryUtils.beanNamesForTypeIncludingAncestors(
+        this.beanFactory, Advisor.class, true, false);
+  // 前面注册的 TransactionAttributeSourceAdvisor 也会被找出来
+  ```
+
+![TransactionAttributeSourceAdvisor继承关系](../image/TransactionAttributeSourceAdvisor继承关系.png)
+
+- 找出与`class`或`method`匹配的增强器
+
+  解析自定义标签时注入了个`TransactionAttributeSourcePointcut`，通过它拿到`MethodMatcher`
+
+  ![TransactionAttributeSourcePointcut继承关系](../image/TransactionAttributeSourcePointcut继承关系.png)
+
+  
+
+  获取对应类的所有接口加上类本身一起遍历，遍历过程中又对类中的方法再次遍历，一旦匹配成功便认为这个类适用于当前增强器。
+
+  ```
+  接口省的配置可以延伸到类中的每一个函数，match方法中进行额外的检测
+  会使用TransactionAttributeSource#getTransactionAttribute(具体是AnnotationTransactionAttributeSource)
+  先查缓存，找不到的话尝试加载
+  AbstractFallbackTransactionAttributeSource#computeTransactionAttribute 提取事务标签
+  ```
+
+  **提取事务标签**
+
+  `AbstractFallbackTransactionAttributeSource#computeTransactionAttribute`这里规定了只有被`public`修饰的方法才能被代理(`Modifier.isPublic(method.getModifiers())`)
+
+  提取顺序：方法 -> 类 -> 接口方法 -> 接口
+
+  `SpringTransactionAnnotationParser#parseTransactionAnnotation`解析注解
+
+#### 10.3 事务增强器
+
+`TransactionInterceptor`
+
+![TransactionInterceptor继承关系](F:\IdeaProjects\spring-learn\src\main\resources\image\TransactionInterceptor继承关系.png)
+
+事务处理流程：
+
+1. 获取事务属性(`TransactionAttribute`)
+
+2. 加载配置中的`TransactionManager`
+
+3. 不同的事务使用不同的逻辑
+
+   编程式事务，声明式事务两者的区别：
+
+   - 编程式事务不需要事务属性
+   - `CallbackPreferringPlatformTransactionManager`实现了`TransactionManager`接口，暴露除一个方法用于执行事务处理中的回调
+
+4. 在目标方法执行前获取事务并收集事务信息(`TransactionInfo`：包含事务属性信息，还有`PlateformTransactionManager, TransactionStatus`)
+
+5. 执行目标方法
+
+6. 如果有异常进行异常处理(回滚运行时异常)
+
+7. 提交事务之前将事务信息清除
+
+8. 提交事务
+
+**创建事务**(`TransactionAspectSupport#createTransactionIfNecessary`)
+
+- 如果没有指定名称则使用方法唯一标识，使用`DelegatingTransactionAttribute`封装`TransactionAttribute(实际为RuleBasedTransactionAttribute)`(获取事务属性时生成)
+
+- 获取`TransactionStatus`
+
+  `AbstractPlatformTransactionManager#getTransaction`
+
+  - 获取事务
+
+    使用`DataSourceTransactionManager`创建基于jdbc的事务实例，如果当前线程存在关于dataSource的连接，直接使用；对保存点的设置(是否允许保存点取决于是否设置了运行嵌入式事务)
+
+  - 如果当前线程存在事务，转向嵌套事务处理
+
+  - 事务超时设置验证
+
+  - 事务传播行为设置验证
+
+    当前线程不存在事务，但是事务传播行为设置为`mandatory`需要抛异常
+
+    事务传播行为为`required, requires_new, nested`需要创建新事务
+
+  - 构建`DefaultTransactionStatus`
+
+  - 完善事务(包括设置`ConnectionHolder`，隔离级别，超时时间，如果是新连接绑定到当前线程)
+
+    `DataSourceTransactionManager#doBegin`事务从这个方法开始
+
+    - 尝试获取连接(让一个当前线程总connectionHolder已经存在不会再次获取，如果事务同步标识设置为true需要重新获取连接)
+    - 设置数据库连接的隔离级别和只读标识(`connection#setReadOnly`)(`DataSourceUtils#prepareConnectionForTransaction`)
+    - 更改默认的提交设置(如果是默认提交，需要将提交操作改为交给spring控制)
+    - 设置标志位，标识当前连接已经被事务激活
+    - 设置过期时间
+    - 将`connectionHolder`绑定到当前线程(`TransactionSynchronizationManager#bindResource`)
+    - 将事务记录在当前线程中(`AbstractPlatformTransactionManager#prepareSynchronization`)
+
+- 根据指定的属性和status创建一个`TransactionInfo`
+
+**处理已存在的事务**
+
+`AbstractPlatformTransactionManager#handleExistingTransaction`事务传播行为处理
+
+- nested
+
+  嵌套事务(首选设置保存点的方式作为异常处理的回滚)
+
+- requires_new
+
+  当前方法必须在自己的事务中运行；如果当前存在事务，挂起，后续需要恢复
+
+**准备事务信息**
+
+`TransactionAspectSupport#prepareTransactionInfo`
+
+将事务信息统一记录在`TransactionInfo`中，包含目标方法开始前的所有状态信息，一旦执行失败，通过其中的信息完成回滚等后续工作
+
+**回滚事务**
+
+`TransactionAspectSupport#completeTransactionAfterThrowing`
+
+- 抛出异常时首先判断当前是否存在事务
+
+- 判断是否回滚
+
+  - 如果是，根据`TransactionStatus`中的信息进行回滚
+  - 否则即使抛出异常也会提交
+
+  
+
+- 回滚条件
+
+  ```java
+  // DefaultTransactionAttribute#rollbackOn 默认只回滚RuntimeException, Error
+  @Override
+  public boolean rollbackOn(Throwable ex) {
+  	return (ex instanceof RuntimeException || ex instanceof Error);
+  }
+  ```
+
+- 回滚处理
+
+  `AbstractPlatformTransactionManager#rollback`如果事务已完成，再次回滚会抛出异常
+
+  自定义触发器的调用，激活所有`TransactionSynchronization`中的对应方法
+
+  如果有保存点，说明当前事务为单独的线程则退到保存点(通常是nested嵌套事务)，使用`JdbcTransactionObjectSupport#rollbackToSavepoint`完成
+
+  如果当前事务为独立的新事务，直接回滚，使用`DataSourceTransactionManager`回滚
+
+  如果当前事务不是独立的事务，标记状态等到事务链执行完毕后统一回滚(通常是JTA)
+
+- 回滚后信息清除
+
+  设置完成状态避免重复调用(`DefaultTransactionStatus#setCompleted`)
+
+  如果当前事务是新的同步状态，需要将绑定到当前线程的事务信息清除(将数据库连接从当前线程中解除绑定，释放连接，恢复数据库连接的自动提交属性，重置数据库连接)
+
+  如果是新事务需要做清除资源的工作(如果当前事务是独立新创建的事务则在事务完成时释放数据库连接)
+
+  如果在事务执行前有事务挂起，当事务执行结束后需要将挂起的事务恢复
+
+**事务提交**
+
+`TransactionAspectSupport#commitTransactionAfterReturning`
+
+`AbstractPlatformTransactionManager#commit`
+
+如果某个事务既没有保存点又不是新事务，spring会设置一个回滚标识
+
+某个事务是另一个事务的嵌入事务，但是该事务不在spring的管理范围内或无法设置保存点，spring会通过设置回滚标识的方式禁止提交，等到外部事务提交时，如果发现当前事务设置了回滚标识则由外部事务统一进行整体事务回滚(事务没有被异常捕获的时候也不意味着一定会执行提交过程)
+
+提交过程：
+
+- 当前事务状态中有保存点信息不会提交
+
+- 事务非新事务的时候也不会提交
+
+  对于内嵌事务，spring的处理是将内嵌事务开始 之前设置保存点，一旦内嵌事务出现异常就根据保存点信息进行回滚，如果没有出现异常，内嵌事务不会单独提交，而是根据事务流由最外层事务负责提交，所以如果当前存在保存点信息说明不是最外层事务，不做保存操作
+
+最后`connection.commit()`
 
 ### 11. SpringMvc
 
