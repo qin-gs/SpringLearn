@@ -3,8 +3,16 @@
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:tx="http://www.springframework.org/schema/tx"
        xmlns:context="http://www.springframework.org/schema/context"
        xmlns:aop="http://www.springframework.org/schema/aop"
-       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd http://www.springframework.org/schema/aop https://www.springframework.org/schema/aop/spring-aop.xsd">
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+            http://www.springframework.org/schema/beans/spring-beans.xsd
+            http://www.springframework.org/schema/tx
+            http://www.springframework.org/schema/tx/spring-tx.xsd
+            http://www.springframework.org/schema/context
+            https://www.springframework.org/schema/context/spring-context.xsd
+            http://www.springframework.org/schema/aop
+            https://www.springframework.org/schema/aop/spring-aop.xsd">
 
+    <context:component-scan base-package="com.spring.learn.tx"/>
     <!--这里需要加上classpath*, 否则配置文件找不到(不知道为什么)-->
     <context:property-placeholder location="classpath*:dbconfig.properties"/>
     <bean id="dataSource" class="${jdbc.dataSource}">
@@ -14,12 +22,14 @@
         <property name="driverClassName" value="${jdbc.driverClass}"/>
     </bean>
 
-    <bean id="txManage" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+    <bean id="txManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
         <property name="dataSource" ref="dataSource"/>
     </bean>
-    <bean id="txService" class="com.spring.learn.tx.TxService"/>
+    <!--<bean id="txService" class="com.spring.learn.tx.TxService">-->
+    <!--    <constructor-arg name="txManager" ref="txManage" />-->
+    <!--</bean>-->
 
-    <tx:advice id="txAdvice" transaction-manager="txManage">
+    <tx:advice id="txAdvice" transaction-manager="txManager">
         <tx:attributes>
             <tx:method name="get*" read-only="true"/>
             <tx:method name="*"/>

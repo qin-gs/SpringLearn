@@ -11,9 +11,9 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 import javax.sql.DataSource;
 
-@EnableTransactionManagement
-@Configuration
-@PropertySource("classpath:dbconfig.properties")
+// @EnableTransactionManagement
+// @Configuration
+// @PropertySource("classpath:dbconfig.properties")
 public class Config {
 
     @Autowired
@@ -30,8 +30,8 @@ public class Config {
     }
 
     @Bean
-    public DataSourceTransactionManager transactionManager() {
-        DataSourceTransactionManager manager = new DataSourceTransactionManager(dataSource());
+    public DataSourceTransactionManager txManager(@Autowired DataSource dataSource) {
+        DataSourceTransactionManager manager = new DataSourceTransactionManager(dataSource);
         // 使用AspectJ完成事务，只能注解类，不能注解接口
         // AnnotationTransactionAspect.aspectOf().setTransactionManager(manager);
         return manager;
