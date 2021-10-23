@@ -1563,7 +1563,7 @@ MapperFactoryBean 实现了两个接口 InitializingBean, FactoryBean
   - 如果是，根据`TransactionStatus`中的信息进行回滚
   - 否则即使抛出异常也会提交
 
-  
+
 
 - 回滚条件
 
@@ -1621,6 +1621,40 @@ MapperFactoryBean 实现了两个接口 InitializingBean, FactoryBean
 
 #### 11.1 springMvc使用
 
+web.xml配置
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE web-app PUBLIC "-//Sun Microsystems, Inc.//DTD Web Application 2.3//EN"
+        "http://java.sun.com/dtd/web-app_2_3.dtd">
+<web-app>
+    <context-param>
+        <param-name>contextConfigLocation</param-name>
+        <param-value>/WEB-INF/app-servlet.xml</param-value>
+    </context-param>
+
+    <listener>
+        <listener-class>org.springframework.web.context.ContextLoaderListener</listener-class>
+    </listener>
+
+    <!--会自动在WEB-INF目录下寻找 [servlet-name]-servlet.xml 这个文件，并在该目录中创建bean-->
+    <!--也可以用contextConfigLocation参数自己配置-->
+    <servlet>
+        <servlet-name>app</servlet-name>
+        <servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
+        <init-param>
+            <param-name>contextConfigLocation</param-name>
+            <param-value/>
+        </init-param>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>app</servlet-name>
+        <url-pattern>/app/*</url-pattern>
+    </servlet-mapping>
+
+</web-app>
+```
+
 #### 11.2 ContextLoaderListener
 
 ```text
@@ -1633,117 +1667,189 @@ web中，需要将路径通过param-value注册并使用ContextLoaderListener监
 ```
 
 `ContextLoadListener`: 在启动web容器时，自动装配`ApplicationContext`的配置信息，因为它实现了`ServletContextListener`接口
-在web.xml配置这个监听器，启动容器时，会默认执行它实现的方法；使用该接口，能够在为客户端请求提供服务之前向`ServletContext`中添加任意对象 ；该对象在`ServletContext`
-启动时被创建，`ServletContext`的整个运行期间都可见    
-每个`web`应用都有一个`ServletContext`相关联，在应用启动时被创建，应用关闭时销毁，全局范围内有序，类似于应用中的全局变量  
+
+在web.xml配置这个监听器，启动容器时，会默认执行它实现的方法；使用该接口，能够在为客户端请求提供服务之前向`ServletContext`中添加任意对象；该对象在`ServletContext`启动时被创建，`ServletContext`的整个运行期间都可见；每个`web`应用都有一个`ServletContext`相关联，在应用启动时被创建，应用关闭时销毁，全局范围内有序，类似于应用中的全局变量
+
 `ServletContextListener`的核心是初始化`WebApplicationContext`实例并存放至`ServletContext`中
 
 **ServletContextListener接口的使用**
+
 自定义一个`ServletContextListener(ServletContextListener)`，注册到`web.xml`中，可以在任意`servlet`或`jsp`中获取
 
 **spring中的ContextLoaderListener类**
 
-`ContextLoaderListener.contextInitialized`方法中初始化了`WebApplicationContext`  
-`WebApplicationContext(extends ApplicationContext)`类: 在`ApplicationContext`中追加了一些特定于web的操作和属性(
-类似于`ClasspathXmlApplicationContext`)
+`ContextLoaderListener.contextInitialized`方法中初始化了`WebApplicationContext`
 
-1. `WebApplicationContext`的存在性验证  
+`WebApplicationContext(extends ApplicationContext)`类: 在`ApplicationContext`中追加了一些特定于web的操作和属性(类似于`ClasspathXmlApplicationContext`)
+
+1. `WebApplicationContext`的存在性验证
+
    配置中只允许声明一次`ServletContextListener`
-2. 创建`WebApplicationContext`实例 检测通过后，通过`createWebApplicationContext`方法创建实例  
+
+2. 创建`WebApplicationContext`实例 检测通过后，通过`createWebApplicationContext`方法创建实例
+
    初始化过程中，读取`ContextLoader`类同目录下的属性文件，根据配置提取将要实现`WebApplicationContext`接口的实现类，反射创建
+
 3. 将实例记录在`servletContext`中
-4. 映射当前的类加载器于创建的实例到全局变量`currentContextPerThread`中
+
+4. 映射当前的类加载器与创建的实例到全局变量`currentContextPerThread`中
 
 #### 11.3 DispatcherServlet
 
 **servlet使用**
+
 servlet接口的实现类 生命周期：初始化，运行，销毁
 
-1. 初始化  
-   servlet容器加载servlet类，将class文件读取到内存中  
-   创建一个ServletConfig对象，其中包含servlet初始化的配置信息  
-   创建一个servlet对象  
-   调用init方法初始化
-2. 运行  
-   当servlet容器接收到请求后，会根据请求创建`servletRequest`和`servletResponse`对象，调用`service`方法处理请求
-3. 销毁  
-   先调用destroy方法，然后销毁servlet对象 和 相关的servletConfig
+- 初始化
+
+  servlet容器加载servlet类，将class文件读取到内存中
+
+  创建一个`ServletConfig`对象，其中包含servlet初始化的配置信息
+
+  创建一个servlet对象
+
+  调用`init`方法初始化
+
+- 运行
+
+  当servlet容器接收到请求后，会根据请求创建`servletRequest`和`servletResponse`对象，调用`service`方法处理请求
+
+- 销毁
+
+  先调用`destroy`方法(可以用来关闭资源)，然后销毁`servlet`对象 和 相关的`servletConfig`
+
+  - javax.servlet ：定义了所有的servlet类必须实现或扩展的通用接口和类
+
+  - javax.servlet.http：定义采用http通信协议的HttpServlet类
 
 **DispatcherServlet初始化**
-![DispatcherServlet继承关系](image/DispatcherServlet继承关系.png)
+![DispatcherServlet继承关系](../image/DispatcherServlet继承关系.png)
 
-其父类`HttpServletBean`中重写了`init`方法，将当前servlet封裝成BeanWrapper，便于进行属性注入
+其父类`HttpServletBean`中重写了`init`方法，将当前servlet封装成`BeanWrapper`，便于进行属性注入
 
-1. 封装及验证初始化参数  
-   处理`servlet`中`<init-param>`里面的参数，可以通过`requiredProperties`对某些属性进行强制性验证
-2. 将当前`servlet`实例转化成`BeanWrapper`
-3. 注册相对于`Resource`的属性编辑器  
+1. 封装及验证初始化参数
+
+   处理`servlet`中`<init-param>`里面的参数放到`ServletConfigPropertyValues`中，可以通过`requiredProperties`对某些属性进行强制性验证
+
+2. 将当前`servlet`实例转化成`BeanWrapper`方便设置值
+
+3. 注册相对于`Resource`的属性编辑器
+
    属性注入过程中，如果遇到`Resource`类型的属性会使用`ResourceEditor`进行解析
+
 4. 属性注入
-5. `servletBean`初始化  
-   对`ContextLoaderListener`加载的时候创建的`WebApplicationContext`对象进一步初始化   
-   统计了一下初始化时间，剩余的交给`initWebApplicationContext`
+
+5. `servletBean`初始化
+
+   对`ContextLoaderListener`加载的时候创建的`WebApplicationContext`对象进一步初始化 ，通过父类`FrameworkServlet`重写`initServletBean`完成，并这里统计了一下初始化时间，真正的初始化交给`initWebApplicationContext`方法
 
 **WebApplicationContext初始化**
+
 创建或刷新`WebApplicationContext`实例，并对`servlet`功能使用的变量进行初始化
 
 1. 寻找或创建对应的`WebApplicationContext`实例
     1. 通过构造函数的注入进行初始化
-    2. 通过`contextAttribute`进行初始化
-    3. 重新创建`WebApplicationContext`实例
-2. `configureAndRefreshWebApplicationContext`  
+    
+    2. 通过`web.xml`中配置的servlet参数`contextAttribute`查找`ServletContext`中的对应属性
+    
+       `ContextLoaderListener`加载时会创建`WebApplicationContext`实例，并将实例以`WebApplicationContext.class.getName() + ".ROOT"`为key放入`ServletContext`中
+    
+    3. 如果上面两个都没有完成初始化，重新创建`WebApplicationContext`实例(默认是`XmlWebApplicationContext`)
+    
+2. `configureAndRefreshWebApplicationContext`
+
    使用父类`AbstractApplicationContext`提供的refresh进行配置文件加载
-3. 刷新  
-   `FrameServlet`提供的方法，`DispatcherServlet`进行了重写，用来刷新`spring`在`web`功能中必须使用的全局变量  
-   依次初始化以下九个对象
-    1. `MultipartResolver`  
-       处理文件上传
-    2. `LocalResolver`  
+
+3. 刷新`FrameworkServlet#onRefresh`
+
+   `FrameServlet`提供的方法，`DispatcherServlet`进行了重写，用来刷新`spring`在`web`功能中必须使用的全局变量，依次初始化以下九个对象
+
+    1. `MultipartResolver` ：处理文件上传
+
+    2. `LocalResolver`
+       
        国际化配置
+       
         1. 基于`url`参数的配置(`url`中添加参数`locale=zh_CN`)
         2. 基于`session`的配置
         3. 基于`cookie`的配置(获取`cookie`中的`Locale`对象)
-    3. ThemeResolver  
+       
+    3. `ThemeResolver`
+
        主题功能
-        1. 主题资源  
+
+        1. 主题资源
+
            `ThemeSource`接口，存放主题信息的资源
+
         2. 主题解析器
-            1. 固定的主题解析器
-            2. 基于`session`的主题解析器
-            3. 基于`cookie`的主题解析器
+            1. 固定的主题解析器(`FixedThemeResolver`)
+            2. 基于`session`的主题解析器(`SessionThemeResolver`)
+            3. 基于`cookie`的主题解析器(`CookieThemeResolver`)
             4. 抽象的主题解析器(用户自定义 `AbstractThemeResolver`)
-        3. 拦截器  
-           根据用户请求修改主题
-    4. `HandlerMappings`  
-       `DispatcherServlet`将请求提交给`HandlerMapping`，然后根据`WebApplicationContext`的配置传给相应的`Controller`  
-       可以提供多个`HandlerMapping`，根据优先级排序，也可以通过参数只指定一个
-    5. `HandlerAdapters`  
+
+        3. 拦截器
+
+           `ThemeChangeInterceptor`根据用户请求修改主题
+
+    4. `HandlerMappings`
+
+       `DispatcherServlet`将请求提交给`HandlerMapping`，然后根据`WebApplicationContext`的配置传给相应的`Controller`，自己可以提供多个`HandlerMapping`，根据优先级排序，也可以通过参数只指定一个，默认加载`org.springframework.web.servlet.DispatcherServlet.properties`文件中的默认配置(`BeanNameUrlHandlerMapping, RequestMappingHandlerMapping, RouterFunctionMapping`)
+
+    5. `HandlerAdapters`
+
        适配器，如果没有配置会默认加载三个
+
         1. `HttpRequestsHandlerAdapter`(应用于远程调用)
-        2. `SimpleControllerHandlerAdapter`
-        3. `AnnotationMethodHandlerAdapter`
-    6. `HandlerExceptionResolver` 异常处理器
-    7. `RequestToViewNameTranslator`   
-       `Controller`处理器中没有返回`view`对象或视图名称，并且没有直接向`response`的输出流中写入数据时，`spring`会提供一个逻辑视图名称  
-       其默认实现为`DefaultRequestToViewNameTranslator`，该类会将获取到请求的`uri`，根据提供的属性做一些改造，将改造之后的结果作为视图名称返回  
-       允许用户的配置：` prefix, suffix, separator, stripLeadingSlash, stripTrailingSlash, stripExtension`
-    8. `ViewResolver` 视图解析器
-    9. `FlashMapManager`  
-       提供请求存储属性；`flash attributes`在重定向前暂存以便重定向之后还能使用，并立刻删除  
-       `FlashMap`: 用于保持 `flash map`  
-       `FlashMapManager`: 用于存储，管理，检测`FlashMap`  
+        2. `SimpleControllerHandlerAdapter`简单控制器处理器适配器
+        3. `AnnotationMethodHandlerAdapter`注解方法处理器适配器
+
+    6. `HandlerExceptionResolver` 
+
+       异常处理器，`resolveException`方法需要返回一个`ModelAndView`;
+
+    7. `RequestToViewNameTranslator` 
+
+       `Controller`处理器中没有返回`view`对象或视图名称，并且没有直接向`response`的输出流中写入数据时，`spring`会提供一个逻辑视图名称，其默认实现为`DefaultRequestToViewNameTranslator`，该类会将获取到请求的`uri`，根据提供的属性做一些改造，将改造之后的结果作为视图名称返回，允许用户的配置：` prefix, suffix, separator, stripLeadingSlash, stripTrailingSlash, stripExtension`
+
+    8. `ViewResolver` 
+
+       视图解析器，默认是`InternalResourceViewResolver`
+
+    9. `FlashMapManager`
+
+       提供请求存储属性；`flash attributes`在重定向前暂存以便重定向之后还能使用，并立刻删除
+
+       - `FlashMap`: 用于保持 `flash map`
+
+       - `FlashMapManager`: 用于存储，管理，检测`FlashMap`
+
        可以通过 `RequestContextUtils` 获取
+
+       ```java
+       // 获取当前线程的request
+       HttpServletRequest request = ((ServletRequestAttributes)(RequestContextHolder.getRequestAttributes())).getRequest();
+       // 获取当前线程的flashmap
+       FlashMap flashmap = RequestContextUtils.getOutputFlashMap(request);
+       FlashMap flashmap = ((FlashMap)(request.getAttribute(DispatcherServlet.OUTPUT_FLASH_MAP_ATTRIBUTE)));
+       ```
 
 #### 11.4 DispatcherServlet的逻辑处理
 
-`FrameworkServlet`  
+`FrameworkServlet`
+
 `doGet/doPost -> processRequest -> doService(DispatcherServlet) -> doDispatch`
 
 1. 提取线程中的`LocaleContext, RequestAttributes` 两个属性，保证请求后还能恢复
+
 2. 根据当前`request`创建对应`LocaleContext, RequestAttributes`，绑定到当前线程
-3. 调用`doService`方法  
-   将一些变量放入`request`(`localeResolver, themeResolver`等)  
-   `doDispatch`:
+
+3. 调用`doService`方法
+
+   将一些变量放入`request`(`localeResolver, themeResolver`等)
+
+   **`doDispatch`**:
+
     1. 如果`request`是`MultipartContext`类型，需要转换成`MultipartHttpServletRequest`类型
     2. 根据`request`寻找`Handler`(如果没有找到，通过`response`返回错误信息)
        `spring`启动时会将所有映射类型的`bean`注册到`this.handlerMappings中`
@@ -1771,13 +1877,15 @@ servlet接口的实现类 生命周期：初始化，运行，销毁
         `DispatcherServlet.processDispatchResult#render`
         1. 解析视图名称  
            `InternalResourceViewResolver`  
-           ![InternalResourceViewResolver继承关系](image/InternalResourceViewResolver继承关系.png)  
+           ![InternalResourceViewResolver继承关系](../image/InternalResourceViewResolver继承关系.png)  
            父类`AbstractCachingVieResolver`中的`resolveViewName`方法解析视图名称  
            父类`UrlBasedViewResolver`中重写了`createView`函数，处理前缀后缀(forward, redirect, string等)，并且提供了缓存支持
         2. 页面跳转 处理跳转逻辑，将放入放入ModelAndView的属性放入request中
     11. 完成处理后激活触发器
+
 4. 请求处理结束后恢复线程到原始状态
-5. 无论是否成功发布事件通知
+
+5. 请求结束以后无论是否成功发布事件通知
 
 ### 12. 远程服务
 

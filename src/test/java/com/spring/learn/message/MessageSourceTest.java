@@ -14,8 +14,8 @@ public class MessageSourceTest {
         MessageSource source = new ClassPathXmlApplicationContext(configs);
         Object[] params = {"John", new GregorianCalendar().getTime()};
 
-        String msg1 = source.getMessage("test", null, Locale.US);
-        String msg2 = source.getMessage("test", null, Locale.CHINA);
+        String msg1 = source.getMessage("test", params, Locale.US);
+        String msg2 = source.getMessage("test", params, Locale.CHINA);
 
         System.out.println(msg1);
         System.out.println(msg2);
