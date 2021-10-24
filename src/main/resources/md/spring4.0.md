@@ -37,7 +37,7 @@
    ServletContext sc = wac.getServletContext();
    ```
 
-   为bean添加了三个作用域: singleton, protptype, request, session, global session
+   为bean添加了三个作用域: singleton, prototype, request, session, global session
 
    ​ ConfigurableWebApplicationContext继承该接口
 

@@ -9,6 +9,17 @@
         <param-value>classpath*:/config/applicationContext.xml</param-value>
     </context-param>
 
+    <!--这个拦截器将拦截 application/x-www-form-urlencoded 类型的 put/patch 表单提交-->
+    <!--从请求正文中获取数据包装后使表单数据可以通过 request.getParameter("name") 获取-->
+    <filter>
+        <filter-name>httpPutFormFilter</filter-name>
+        <filter-class>org.springframework.web.filter.FormContentFilter</filter-class>
+    </filter>
+    <filter-mapping>
+        <filter-name>httpPutFormFilter</filter-name>
+        <servlet-name>dispatcherServlet</servlet-name>
+    </filter-mapping>
+
     <!--上下文载入器，载入除DispatcherServlet之外的其他上下文配置文件-->
     <listener>
         <listener-class>org.springframework.web.context.ContextLoaderListener</listener-class>
@@ -17,7 +28,7 @@
     <!--会自动在WEB-INF目录下寻找 [servlet-name]-servlet.xml 这个文件，并在创建该目录中的bean-->
     <!--也可以用contextConfigLocation参数自己配置-->
     <servlet>
-        <servlet-name>app</servlet-name>
+        <servlet-name>dispatcherServlet</servlet-name>
         <servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
         <init-param>
             <param-name>contextConfigLocation</param-name>
@@ -25,7 +36,7 @@
         </init-param>
     </servlet>
     <servlet-mapping>
-        <servlet-name>app</servlet-name>
+        <servlet-name>dispatcherServlet</servlet-name>
         <url-pattern>/app/*</url-pattern>
     </servlet-mapping>
 

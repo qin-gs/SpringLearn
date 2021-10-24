@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:mvc="http://www.springframework.org/schema/mvc"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="
+        http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/mvc
+        http://www.springframework.org/schema/mvc/spring-mvc.xsd">
+
+    <mvc:annotation-driven conversion-service="conversionService"/>
+
+    <!--注册自定义格式器转换器-->
+    <bean id="conversionService" class="org.springframework.format.support.FormattingConversionServiceFactoryBean">
+        <property name="converters">
+            <set>
+                <bean class="com.spring.learn.converter.String2DateConverter"/>
+            </set>
+        </property>
+        <property name="formatters">
+            <set>
+                <bean class="com.spring.learn.formatter.DateFormatter">
+                    <constructor-arg value="yyyy-MM-dd"/>
+                </bean>
+            </set>
+        </property>
+        <property name="formatterRegistrars">
+            <set>
+            </set>
+        </property>
+    </bean>
+
+</beans>

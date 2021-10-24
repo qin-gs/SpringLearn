@@ -16,7 +16,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- * 讲一个注解绑定到格式化器上
+ * 将一个注解绑定到格式化器上
  */
 public final class NumberFormatAnnotationFormatterFactory
         implements AnnotationFormatterFactory<NumberFormat> {
