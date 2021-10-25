@@ -140,9 +140,9 @@ aop如何被代理(`AnnotationAwareAspectJAutoProxyCreator` `AbstractAutoProxyCr
 
 启用aop之后，getBean(ABean.class)拿不到目标对象的(被代理了)
 
-DefaultSingletonBeanRegistry.getSingleton
+getBean方法：
 
-AbstractAutowireCapableBeanFactory.createBean
+先`DefaultSingletonBeanRegistry.getSingleton` ，如果拿不到`AbstractAutowireCapableBeanFactory#createBean` -> `doCreateBean(创建原始的对象(不是代理))` -> `createBeanInstance`返回`BeanWrapper#getWrappedInstance` -> `initializeBean(完成代理(将目标对象替换成代理对象bean))` ->（ `applyBeanPostProcessorsBeforeInitialization` -> `invokeInitMethods执行bean生命周期中的回调方法`->） `applyBeanPostProcessorsAfterInitialization(里面有一个AnnotationAwareAspectJAutoProxyCreator这个BeanPostProcessor通过添加注解(@EnableApsectJAutoProxy)注册进去(AopConfigUtils#registerAspectJAnnotationAutoProxyCreatorIfNecessary))` -> `AbstractAutoProxyCreator#postProcessAfterInitialization` -> `AbstractAutoProxyCreator#createProxy `-> `createAopProxy()(jdk或者cglib).getProxy(classLoader);`
 
 BeanFactoryPostProcessor
 

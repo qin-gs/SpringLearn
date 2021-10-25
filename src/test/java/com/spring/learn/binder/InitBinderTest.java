@@ -1,5 +1,6 @@
 package com.spring.learn.binder;
 
+import com.spring.learn.formatter.DateFormatter;
 import org.springframework.beans.propertyeditors.CustomDateEditor;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.WebDataBinder;
@@ -14,6 +15,7 @@ import java.util.Date;
 public class InitBinderTest {
 
     /**
+     * 没有返回值
      * 进行数据类型转换
      */
     @InitBinder
@@ -21,6 +23,9 @@ public class InitBinderTest {
         DateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
         CustomDateEditor editor = new CustomDateEditor(sdf, true);
         binder.registerCustomEditor(Date.class, editor);
+
+        // 4.2 之后推荐这种方式
+        binder.addCustomFormatter(new DateFormatter("yyyy-MM-dd"));
     }
 
     /**

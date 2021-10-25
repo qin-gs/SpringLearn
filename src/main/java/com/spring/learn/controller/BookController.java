@@ -4,6 +4,7 @@ import com.spring.learn.service.BookService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.servlet.DispatcherServlet;
@@ -17,8 +18,8 @@ public class BookController {
     @Autowired
     private BookService service;
 
-    @GetMapping("test")
-    public void test() {
+    @GetMapping("test/{id}")
+    public void test(@PathVariable String id) {
         // 获取当前线程的request
         HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
 
