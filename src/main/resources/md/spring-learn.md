@@ -1850,38 +1850,106 @@ servlet接口的实现类 生命周期：初始化，运行，销毁
 
    **`doDispatch`**:
 
-    1. 如果`request`是`MultipartContext`类型，需要转换成`MultipartHttpServletRequest`类型
-    2. 根据`request`寻找`Handler`(如果没有找到，通过`response`返回错误信息)
+    1. 如果`request`是`MultipartContext`类型(判断`Content-Type`是否以`multipart`开头)，需要转换成`MultipartHttpServletRequest`类型
+
+    2. 根据`request`寻找`Handler`，并加入拦截器到执行链(如果没有找到，通过`response`返回错误信息)
+
        `spring`启动时会将所有映射类型的`bean`注册到`this.handlerMappings中`
-       根据`url`找到匹配的`Controller`返回，如果没有找到尝试去查找默认处理器，如果查找到的是`string`，意味着返回的是`bean`名称，根据名称取擦或者`bean`  
+       根据`url`找到匹配的`Controller`返回，如果没有找到尝试去查找默认处理器，如果查找到的是`string`，意味着返回的是`bean`名称，根据名称取擦或者`bean`
+
        用`HandlerExecutionChain`对返回的`Handler`进行封装
-        1. 截取用于匹配的路径，根据路径寻找`Handler`，考虑直接匹配和通配符两种情况
-        2. 如果是`/`，使用`RootHandler`处理
-        3. 如果找不到用默认的`Handler`
-        4. 如果是`string`，从容器中`getBean(handlerName)`
-        5. 最后将`Handler`封装成`HandlerExecutionChain`并加入两个拦截器  
-           如果`url`没有匹配的`Handler`，可以设置默认的来处理，如果没有设置只能通过`response`返回错误信息
-    3. 根据`Handler`寻找`HandlerAdapter`  
-       默认情况下普通`web`请求会交给`SimpleControllerHandlerAdapter`(处理`Controller`接口的实现类)  
+
+       - 截取用于匹配的路径(从request中获取属性`javax.servlet.include.request_uri, javax.servlet.include.context_path`)，根据路径寻找`Handler`(`AbstractUrlHandlerMapping#getHandlerInternal`)，考虑直接匹配和通配符两种情况(`AbstractUrlHandlerMapping#lookupHandler`)
+
+       - 如果是`/`，使用`RootHandler`处理
+
+       - 如果找不到用默认的`Handler`
+
+       - 如果是`string`，从容器中`getBean(handlerName)`
+
+       - 最后将`Handler`封装成`HandlerExecutionChain`(`AbstractUrlHandlerMapping#buildPathExposingHandler`)并加入两个拦截器(`PathExposingHandlerInterceptor, UriTemplateVariablesHandlerInterceptor`)，如果`url`没有匹配的`Handler`，可以设置默认的来处理，如果没有设置只能通过`response`返回错误信息(`DispatcherServlet#noHandlerFound`)
+
+       - 加入拦截器到执行链
+
+         `AbstractHandlerMapping#getHandlerExecutionChain`
+
+    3. 根据`Handler`寻找`HandlerAdapter`
+
+       默认情况下普通`web`请求会交给`SimpleControllerHandlerAdapter`(处理`Controller`接口的实现类)
+
        遍历所有的适配器选择合适的返回(匹配逻辑封装在具体的适配器中)
-    4. 如果当前`Handler`支持`last-modified`头处理  
-       实现`LastModified`接口
-    5. 调用所有拦截器的`preHandler`方法
-       `HandlerInterceptor`接口
-    6. 异常视图的处理  
-       出现异常后，将逻辑引导至`HandlerExceptionResolver`类的`resolveException`方法
-    7. 真正的激活`handler`并返回视图
-    8. 处理返回的视图名称(如果需要添加前后缀)
-    9. 调用所有拦截器的`postHandler`方法
-    10. 如果`Handler`处理后返回了`view`，需要做页面处理
-        `DispatcherServlet.processDispatchResult#render`
-        1. 解析视图名称  
-           `InternalResourceViewResolver`  
-           ![InternalResourceViewResolver继承关系](../image/InternalResourceViewResolver继承关系.png)  
-           父类`AbstractCachingVieResolver`中的`resolveViewName`方法解析视图名称  
-           父类`UrlBasedViewResolver`中重写了`createView`函数，处理前缀后缀(forward, redirect, string等)，并且提供了缓存支持
-        2. 页面跳转 处理跳转逻辑，将放入放入ModelAndView的属性放入request中
-    11. 完成处理后激活触发器
+
+       ```java
+       // SimpleControllerHandlerAdapter 用于处理普通web请求，将逻辑封装到Controller的子类中
+       @Override
+       public boolean supports(Object handler) {
+          return (handler instanceof Controller);
+       }
+       ```
+
+    4. 缓存处理
+
+       如果当前`Handler`支持`last-modified`头处理，需要实现`LastModified`接口；Spring判断是否过期是通过判断请求的`if-modified-since`是否大于当前的`getLastModified`方法的时间戳，如果是则认为没有修改
+
+    5. `HandlerInterceptor`处理
+
+       调用所有拦截器的`preHandler`方法(如果某个拦截器返回`false`直接返回)
+
+    6. 调用`HandlerAdapter#handle`方法，真正的激活`handler`并返回视图
+
+       ```java
+       // SimpleControllerHandlerAdapter 
+       @Override
+       public ModelAndView handle(HttpServletRequest request, HttpServletResponse response, Object handler)
+             throws Exception {
+       
+          return ((Controller) handler).handleRequest(request, response);
+       }
+       
+       // AbstractController#handleRequest 这里真正调用Controller中重写的方法
+       @Override
+       public ModelAndView handleRequest(HttpServletRequest request, HttpServletResponse response)
+       	throws Exception {
+       	// 如果需要session内同步会通过互斥量进行同步 ...
+       	return handleRequestInternal(request, response);
+       }
+       ```
+
+    7. 视图名称转换(添加前后缀)
+
+    8. 调用所有拦截器的`postHandler`方法(如果有异常也会返回`ModelAndView`)
+
+    9. 异常视图的处理(`DispatcherServlet#processDispatchResult`)
+
+       出现异常后，将逻辑引导至`DispatcherServlet#processHandlerException`使用`HandlerExceptionResolver`进行异常处理
+
+    10. 处理返回的视图名称(如果需要添加前后缀)
+
+    11. 调用所有拦截器的`postHandler`方法
+
+    12. 如果`Handler`处理后返回了`view`，需要做页面处理
+
+        `DispatcherServlet#processDispatchResult`，`DispatcherServlet#render`处理页面跳转
+
+        1. 解析视图名称
+
+           `DispatcherServlet#resolveViewName` `InternalResourceViewResolver`
+
+           ![InternalResourceViewResolver继承关系](../image/InternalResourceViewResolver继承关系.png)
+
+           父类`AbstractCachingVieResolver`中的`resolveViewName`方法解析视图名称
+
+           不存在缓存的情况下直接创建视图(`UrlBasedViewResolver#loadView`)，否则从缓存中提取
+
+           父类`UrlBasedViewResolver`中重写了`createView`函数，处理前缀后缀(forward, redirect, string等)，并且提供了缓存支持，添加一些必须的属性
+
+        2. 页面跳转 `AbstractView#render`
+
+           处理跳转逻辑，将放入`ModelAndView`的属性放入`request`中(`InternalResourceView#renderMergedOutputModel`)，以便在页面上直接通过jstl语法或原始request获取
+
+    13. 完成处理后激活触发器
+
+        `DispatcherServlet#triggerAfterCompletion`
 
 4. 请求处理结束后恢复线程到原始状态
 
@@ -1889,9 +1957,15 @@ servlet接口的实现类 生命周期：初始化，运行，销毁
 
 ### 12. 远程服务
 
+​	Java远程方法调用 Java RMI (Java Remote Method Invocation)
+
 ### 13 spring消息
 
+​	Java消息服务 JMS (Java Message Service)
+
 ### 14 springboot体系原理
+
+#### 14.2 Starter创建
 
 #### 14.3 SpringApplication的启动
 

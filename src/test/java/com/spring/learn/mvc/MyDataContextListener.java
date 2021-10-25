@@ -12,26 +12,26 @@ import javax.servlet.ServletContextListener;
  */
 public class MyDataContextListener implements ServletContextListener {
 
-	private ServletContext context = null;
+    private ServletContext context = null;
 
-	public MyDataContextListener() {
-	}
+    public MyDataContextListener() {
+    }
 
-	/**
-	 * 该方法在ServletContext启动之后被调用，并准备好处理客户端请求
-	 */
-	@Override
-	public void contextInitialized(ServletContextEvent servletContextEvent) {
-		this.context = servletContextEvent.getServletContext();
-		// 可以在其中实现自己的逻辑
-		this.context.setAttribute("myData", "this is my data");
-	}
+    /**
+     * 该方法在ServletContext启动之后被调用，并准备好处理客户端请求
+     */
+    @Override
+    public void contextInitialized(ServletContextEvent servletContextEvent) {
+        this.context = servletContextEvent.getServletContext();
+        // 可以在其中实现自己的逻辑
+        this.context.setAttribute("myData", "this is my data");
+    }
 
-	/**
-	 * 该方法在ServletContext将关闭时调用
-	 */
-	@Override
-	public void contextDestroyed(ServletContextEvent servletContextEvent) {
-		this.context = null;
-	}
+    /**
+     * 该方法在ServletContext将关闭时调用
+     */
+    @Override
+    public void contextDestroyed(ServletContextEvent servletContextEvent) {
+        this.context = null;
+    }
 }
