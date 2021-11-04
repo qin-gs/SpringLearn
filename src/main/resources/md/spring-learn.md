@@ -1967,58 +1967,88 @@ servlet接口的实现类 生命周期：初始化，运行，销毁
 
 #### 14.2 Starter创建
 
+​	使用`META-INF/spring.factories`声明配置文件的位置
+
 #### 14.3 SpringApplication的启动
 
 `SpringApplication#run`:
+
 `createApplicationContext`: 根据`this.webEnvironment`决定实例化哪一个`ApplicationContext`
+
 `prepareContext`: 创建`BeanDefinitionLoader`加载`BeanDefinition`
+
 `refreshContext`:  创建容器
 
 **SpringContext的创建**
-根据`this.webEnvironment`参数(`spring`如何自动化启动`tomcat`)决定实例化哪一个`ApplicationContext`  
-`AnnotatonConfigEmbeddedWebApplicationContext, ConfigurableWebApplicationContext`
+
+根据`this.webEnvironment`参数(`spring`如何自动化启动`tomcat`)决定实例化哪一个`ApplicationContext`
+
+(`AnnotatonConfigEmbeddedWebApplicationContext, ConfigurableWebApplicationContext`)
 
 **bean的加载**
-**扩展属性加载**
-`applicationContext.refresh()`
 
-`Spring`内置了原有的启动类，在启动的时候启动并刷新  
+`SpringApplication#prepareContext`，使用`BeanDefinitionLoader`加载Bean
+
+**扩展属性加载**
+
+`SpringApplication#refreshContext 中的 applicationContext.refresh()`
+
+`Spring`内置了原有的启动类，在启动的时候启动并刷新
+
 `org.springframework.context.annotation.AnnotationConfigApplicationContext`
 
-#### 14.4 自动化配置原理
+#### 14.4 Starter自动化配置原理
 
 `Starter`生效分析：
-`@SpringBootApplication`注解分析  
-`@SpringBootApplication -> **@EnableAutoConfiguration** -> @Import -> EnableAutoConfigurationImportSelector.class`  
+
+`@SpringBootApplication`注解分析
+
+`@SpringBootApplication -> **@EnableAutoConfiguration** -> @Import -> EnableAutoConfigurationImportSelector.class / AutoConfigurationImportSelector.class`
+
 该类只有一个函数`isEnabled`，调用者`AutoConfigurationImportSelector`
 
 **spring.factories的加载**
 
 ```text
-AutoConfigurationImportSelector#selectImports -> getCandidateConfigurations -> SpringFactoriesLoader.loadFactoryNames
+AutoConfigurationImportSelector#selectImports -> getCandidateConfigurations -> SpringFactoriesLoader.loadFactoryNames -> SpringFactoriesLoader#loadSpringFactories
 通过硬编码读取了配置文件`META-INF/spring.factories`里面的配置类
 ```
 
 **factories时序图**
-`EmbeddedWebApplicationContext -> PostProcessorRregistrationDelegate -> ConfigurationClassPostProcessor -> ConfigurationClassParser -> AutoConfigurationImportSelector`  
+
+`EmbeddedWebApplicationContext -> PostProcessorRregistrationDelegate -> ConfigurationClassPostProcessor -> ConfigurationClassParser -> AutoConfigurationImportSelector`
+
+`AutoConfigurationImportSelector#getAutoConfigurationEntry`获取了所有的配置文件类
+
 通过`BeanDefinitionRegistryPostProcessor`扩展并实现`ConfigurationClassPostProcessor`
 
-**配置类解析**
-`Starter`需要将自身入口配置写入`META-INF`文件下的`spring.factories`  
-`AutoConfigurationImportSelector#selectImports`返回上面文件中的配置类(`String[]`)  
-`ConfigurationClassParser#processImports`调用上面的方法，Spring在启动的时候会扫描所有jar中spring.factories 处理流程：
+![ConfigurationClassPostProcessor继承关系](../image/ConfigurationClassPostProcessor继承关系.png)
 
-1. `ConfigurationClassPostProcessor`作为`spring`扩展到时`springboot`一系列功能的基础入口
-2. `ConfigurationClassParser`作为解析职责的基本处理类，包含各种解析处理逻辑  
+**配置类解**
+
+`Starter`需要将自身入口配置写入`META-INF`文件下的`spring.factories`
+
+`AutoConfigurationImportSelector#selectImports`返回上面文件中的配置类(`String[]`) // TODO 没有找到
+
+`ConfigurationClassParser#processImports`调用上面的方法，Spring在启动的时候会扫描所有jar中的`spring.factories` 处理流程：
+
+1. `ConfigurationClassPostProcessor`作为`spring`扩展是`springboot`一系列功能的基础入口
+
+2. `ConfigurationClassParser`作为解析职责的基本处理类，包含各种解析处理逻辑
+
    `parse`方法处理`@Import, @Bean, @ImportResource, @PropertiesSource, @ComponentScan`等注解
-3. 将所有的解析结果放在`parse`的`configurationClasses`
-   中，对这个属性进行统一的bean硬编码注册，注册功能交给`ConfigurationClassBeanDefinitionReader#loadBeanDefinitions`
-4. `parse`方法中先处理自身能扫描到的`bean`注解，然后处理`spring.factories`定义的配置(`AutoConfigurationImportSelector#selectImports`)
-   ，返回的配置需要进一步解析(可能`@ComponentScan`中扫描出另一个`@ComponentScan`)，方法中会存在递归
+
+3. 将所有的解析结果放在`parse`的`configurationClasses`中，对这个属性进行统一的bean硬编码注册，注册功能交给`ConfigurationClassBeanDefinitionReader#loadBeanDefinitions`
+
+4. `parse`方法中先处理自身能扫描到的`bean`注解，然后处理`spring.factories`定义的配置(`AutoConfigurationImportSelector#selectImports`)，返回的配置需要进一步解析(可能`@ComponentScan`中扫描出另一个`@ComponentScan`)，方法中会存在递归
 
 **ComponentScan切入点**
+
 `ConfigurationClassParser.doProcessConfigurationClass`处理各种注解
-`ClassPathBeanDefinitionScanner`用来解析注解中的数据(`includeFilters, basePackage`等)
+
+先找出所有的`@ComponentScan`注解信息，委托给`ComponentScanAnnotationParser`进行扫描
+
+使用`ClassPathBeanDefinitionScanner`来解析注解中的数据(`includeFilters, basePackage`等)
 
 #### 14.5 Condition机制实现
 
@@ -2030,15 +2060,16 @@ AutoConfigurationImportSelector#selectImports -> getCandidateConfigurations -> S
 只有application.properties中有 prefix.name=value 这条数据时才会生效
 ```
 
-`OnPropertyCondition#getMatchOutcome`处理了这个注解，返回`ConditionalOutcome`  
-`OnPropertyCondition#determineOutcome`核心验证逻辑  
-`PropertyResolver`包含所有的配置属性信息
+`OnPropertyCondition#getMatchOutcome`处理了这个注解，返回`ConditionalOutcome`
+
+`OnPropertyCondition#annotationAttributesFromMultiValueMap`负责扫描`ConditionOnProperty`中配置的的注解信息，扫描完成后`OnPropertyCondition#determineOutcome`完成核心验证逻辑，`PropertyResolver`包含所有的配置属性信息用来验证是否通过
 
 **调用切入点**
-`OnPropertyCondition#getMatchOutcome`的调用者`ConfigurationClassParser#processConfigurationClass`
+
+`OnPropertyCondition#getMatchOutcome`的调用者`ConfigurationClassParser#processConfigurationClass`是判断逻辑的切入点
 `ConditionEvaluator#shouldSkip`方法中：
 
-1. `ConditionEvaluator.getConditionClasses`获取Condition
+1. `ConditionEvaluator.getConditionClasses`获取`Condition`
 2. `Condition.matches`匹配
 
 #### 14.6 属性自动化配置实现
@@ -2050,10 +2081,14 @@ AutoConfigurationImportSelector#selectImports -> getCandidateConfigurations -> S
 ```
 
 **原理**
-`QualifierAnnotationAutowireCandidateResolver.findValue`获取表达式的值  
-`DefaultListableBeanFactory#resolveEmbeddedValue`替换表达式的值  
+
+`QualifierAnnotationAutowireCandidateResolver#findValue`获取表达式的值
+
+`DefaultListableBeanFactory#resolveEmbeddedValue`替换表达式的值
+
 `StringValueResolver`进行属性解析，该类实现了`PropertySourcesPlaceholderConfigurer#postProcessBeanFactory`接口
-![PropertySourcesPlaceholderConfigurer继承关系](image/PropertySourcesPlaceholderConfigurer继承关系.png)  
+![PropertySourcesPlaceholderConfigurer继承关系](../image/PropertySourcesPlaceholderConfigurer继承关系.png)
+
 初始化过程：
 
 1. 初始化`MutablePropertySources`
