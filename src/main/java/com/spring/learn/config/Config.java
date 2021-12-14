@@ -14,6 +14,7 @@ import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Conditional;
+import org.springframework.context.annotation.FilterType;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.context.annotation.Primary;
@@ -24,7 +25,8 @@ import org.springframework.context.annotation.Scope;
         value = "com.spring.learn",
         includeFilters = {
                 // @ComponentScan.Filter(type = FilterType.ANNOTATION, classes = {Controller.class}),
-                // @ComponentScan.Filter(type = FilterType.CUSTOM, classes = MyTypeFilter.class)
+                // @ComponentScan.Filter(type = FilterType.CUSTOM, classes = MyTypeFilter.class),
+                @ComponentScan.Filter(type = FilterType.REGEX, pattern = "com.spring.learn.util.*")
         },
         useDefaultFilters = true
 )

@@ -3,7 +3,8 @@ package com.spring.learn.callback;
 import com.alibaba.druid.pool.DruidDataSource;
 import com.spring.learn.bean.Blog;
 import com.spring.learn.jdbc.bean.User;
-import org.apache.commons.beanutils.BeanUtils;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,9 +27,21 @@ import java.util.Map;
 public class QueryTest {
 
     @Autowired
-    private JdbcTemplate jdbcTemplate;
+    private static JdbcTemplate jdbcTemplate;
     @Autowired
-    private NamedParameterJdbcTemplate namedJdbcTemplate;
+    private static NamedParameterJdbcTemplate namedJdbcTemplate;
+
+    @BeforeAll
+    public static void beforeAll() {
+        DataSource dataSource = dataSource();
+        jdbcTemplate = new JdbcTemplate(dataSource);
+        namedJdbcTemplate = new NamedParameterJdbcTemplate(dataSource);
+    }
+
+    @AfterAll
+    public static void afterAll() {
+        // ...
+    }
 
     @Test
     public void test() {
@@ -38,10 +51,15 @@ public class QueryTest {
         Blog blog = jdbcTemplate.query(sql, new ResultSetExtractor<Blog>() {
             @Override
             public Blog extractData(ResultSet rs) throws SQLException, DataAccessException {
-                Blog blog = new Blog();
-                blog.setId(rs.getString("id"));
-                // ...
-                return blog;
+                // 如果只有一条数据，要先调用 next 方法
+                // 如果有多条数据，需要 while(rs.next()) 循环调用
+                if (rs.next()) {
+                    Blog blog = new Blog();
+                    blog.setId(rs.getString("id"));
+                    // ...
+                    return blog;
+                }
+                return null;
             }
         });
 
@@ -92,10 +110,13 @@ public class QueryTest {
 
     @Test
     public void t() throws Exception {
-        User user = new User();
-        Map<String, Object> map = Map.of("id", 12, "name", "www", "age", 123);
-        BeanUtils.populate(user, map);
+        User user = new User(12, "www", 123);
+        // Map<String, Object> map = Map.of("id", 12, "name", "www", "age", 123);
+        // BeanUtils.populate(user, map);
         BeanPropertySqlParameterSource beanSource = new BeanPropertySqlParameterSource(user);
+
+        beanSource.getValue("id");
+
         NamedParameterJdbcTemplate namedJdbcTemplate = new NamedParameterJdbcTemplate(dataSource());
         // 直接使用 bean 对象 更新/插入
         int update = namedJdbcTemplate.update("insert into user(id, name, age) values (:id, :name, :age)", beanSource);
