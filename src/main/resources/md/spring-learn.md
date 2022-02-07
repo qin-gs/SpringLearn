@@ -1471,7 +1471,7 @@ MapperFactoryBean 实现了两个接口 InitializingBean, FactoryBean
 
 `TransactionInterceptor`
 
-![TransactionInterceptor继承关系](F:\IdeaProjects\spring-learn\src\main\resources\image\TransactionInterceptor继承关系.png)
+![TransactionInterceptor继承关系](../image/TransactionInterceptor继承关系.png)
 
 事务处理流程：
 
@@ -1954,6 +1954,189 @@ servlet接口的实现类 生命周期：初始化，运行，销毁
 4. 请求处理结束后恢复线程到原始状态
 
 5. 请求结束以后无论是否成功发布事件通知
+
+
+
+#### 11.5 HandlerAdapter
+
+将请求 url 映射到 handler，然后将 handler 交给 HandlerAdapter 处理
+
+![HandlerAdapter接口方法](../image/HandlerAdapter接口方法.png)
+
+supports()方法用来判断当前HandlerAdapter是否可以调用处理handler;
+
+handle()方法用来调用handler，具体的来处理请求。
+
+
+
+- SimpleServletHandlerAdapter `javax.servlet.Servlet`
+- SimpleControllerHandlerAdapter `org.springframework.web.servlet.mvc.Controller`接口
+- HttpRequestHandlerAdapter `org.springframework.web.HttpRequestHandler` 访问静态资源
+- RequestMappingHandlerAdapter `org.springframework.web.method.HandlerMethod` 反射调用
+- AnnotationMethodHandlerAdapter 注解类处理器
+
+
+
+#### 11.6 HttpMessageConverter 消息转换器
+
+@RequestBody 和 @ResponseBody 完成 请求报文 到 对象   和  对象 到 相应报文 的转换
+
+**HandlerMethodArgumentResolver 和 HandlerMethodReturnValueHandler**
+
+
+
+SpringMVC处理请求大致是这样的：首先被DispatcherServlet截获，DispatcherServlet通过handlerMapping获得HandlerExecutionChain，然后获得HandlerAdapter。HandlerAdapter在内部对于每个请求，都会实例化一个ServletInvocableHandlerMethod进行处理，ServletInvocableHandlerMethod在进行处理的时候，会分两部分别对请求跟响应进行处理。之后HandlerAdapter得到ModelAndView，然后做相应的处理。
+
+
+
+@Controller 中参数映射 `org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter#afterPropertiesSet`
+
+@ResponseBody 注解的话最终返回值会被 RequestResponseBodyMethodProcessor 这个HandlerMethodReturnValueHandler 实现类处理
+
+RequestResponseBodyMethodProcessor支持的请求类型是Controller方法参数中带有@RequestBody注解，支持的响应类型是Controller方法带有@ResponseBody注解。 
+
+
+
+常用的HandlerMethodArgumentResolver实现类(本文粗略讲下，有兴趣的读者可自行研究)。
+
+1. RequestParamMethodArgumentResolver
+
+    支持带有@RequestParam注解的参数或带有MultipartFile类型的参数
+
+2. RequestParamMapMethodArgumentResolver
+
+    支持带有@RequestParam注解的参数 && @RequestParam注解的属性value存在 && 参数类型是实现Map接口的属性
+
+3. PathVariableMethodArgumentResolver
+
+   支持带有@PathVariable注解的参数 且如果参数实现了Map接口，@PathVariable注解需带有value属性
+
+4. MatrixVariableMethodArgumentResolver
+
+   支持带有@MatrixVariable注解的参数 且如果参数实现了Map接口，@MatrixVariable注解需带有value属性 
+
+5. RequestResponseBodyMethodProcessor
+
+    本文已分析过
+
+6. ServletRequestMethodArgumentResolver
+
+    参数类型是实现或继承或是WebRequest、ServletRequest、MultipartRequest、HttpSession、Principal、Locale、TimeZone、InputStream、Reader、HttpMethod这些类。
+
+   **（这就是为何我们在Controller中的方法里添加一个HttpServletRequest参数，Spring会为我们自动获得HttpServletRequest对象的原因）**
+
+7. ServletResponseMethodArgumentResolver
+
+    参数类型是实现或继承或是ServletResponse、OutputStream、Writer这些类
+
+8. RedirectAttributesMethodArgumentResolver
+
+    参数是实现了RedirectAttributes接口的类
+
+9. HttpEntityMethodProcessor
+
+    参数类型是HttpEntity
+
+从名字我们也看的出来， 以Resolver结尾的是实现了HandlerMethodArgumentResolver接口的类，以Processor结尾的是实现了HandlerMethodArgumentResolver和HandlerMethodReturnValueHandler的类。
+
+
+
+常用的HandlerMethodReturnValueHandler实现类。
+
+1. ModelAndViewMethodReturnValueHandler
+
+   返回值类型是ModelAndView或其子类
+
+2. ModelMethodProcessor
+
+   返回值类型是Model或其子类
+
+3. ViewMethodReturnValueHandler
+
+   返回值类型是View或其子类 
+
+4. HttpHeadersReturnValueHandler
+
+   返回值类型是HttpHeaders或其子类 
+
+5. ModelAttributeMethodProcessor
+
+   返回值有@ModelAttribute注解
+
+6. ViewNameMethodReturnValueHandler
+
+   返回值是void或String
+
+
+
+#### 11.7 mvc 的反射调用
+
+- org.springframework.web.method.support.InvocableHandlerMethod#doInvoke
+
+- org.springframework.web.method.support.InvocableHandlerMethod#invokeForRequest
+
+- org.springframework.web.servlet.mvc.method.annotation.ServletInvocableHandlerMethod#invokeAndHandle
+
+- org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter#invokeHandlerMethod
+
+- org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter#handleInternal
+
+- org.springframework.web.servlet.mvc.method.AbstractHandlerMethodAdapter#handle
+
+- org.springframework.web.servlet.HandlerAdapter#handle
+
+- org.springframework.web.servlet.DispatcherServlet#doDispatch
+
+- org.springframework.web.servlet.FrameworkServlet#doService
+
+
+
+#### 11.8 查找 Controller
+
+1. HandlerMethod ：封装了方法参数、方法注解，方法返回值等众多元素的类
+
+![HandlerMethod继承关系](../image/HandlerMethod继承关系.png)
+
+- InvocableHandlerMethod 处理请求
+
+- ServletInvocableHandlerMethod 处理响应 (处理请求类的子类)，该类在 HandlerAdapter(RequestMappingHandlerAdapter) 对每个请求处理过程中，都会实例化出一个，分别对请求和返回进行处理
+
+2. MethodParameter：封装了**方法参数**具体信息的工具类，包括参数的的索引位置，类型，注解，参数名等信息
+
+3. RequestCondition 接口 请求条件
+
+   PatternsRequestCondition 会自动在路径前补上 `/`
+
+4. RequestMappingInfo 封装各种请求映射条件并实现 RequestCondition 接口
+
+   ```java
+   RequestMappingInfo.Builder builder = RequestMappingInfo
+         .paths(resolveEmbeddedValuesInPatterns(requestMapping.path()))
+         .methods(requestMapping.method())
+         .params(requestMapping.params())
+         .headers(requestMapping.headers())
+         .consumes(requestMapping.consumes())
+         .produces(requestMapping.produces())
+         .mappingName(requestMapping.name());
+   ```
+
+5. RequestMappingHandlerMapping 处理请求 与 HandlerMethod 映射关系的类
+
+
+
+**SpringMVC 的初始化操作**
+
+`org.springframework.web.servlet.handler.AbstractHandlerMethodMapping#initHandlerMethods`
+
+找出 spring 容器中所有的 bean，检测是否被 @Controller 或 @RequestMapping 修饰，遍历提取信息
+
+初始化 Map<Method, RequestMappingInfo>
+
+- 创建 RequestMappingInfo：找到方法中 @RequestMapping 注解，类 和 方法 上都存在该注解的话需要进行合并`org.springframework.web.servlet.mvc.condition.RequestCondition#combine`
+
+注册 HandlerMethod
+
+
 
 ### 12. 远程服务
 
