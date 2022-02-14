@@ -78,14 +78,37 @@ XmlBeanFactory.loadBeanDefinitions
 
 #### 2.8 解析注册BeanDefinitions
 
-将文件转换成`Document`之后，开始提取注册bean `XmlBeanDefinitionReader#registerBeanDefinitions` 先解析bean节点是否定义profile(用来在配置文件中部署不同的配置使用开发环境，生产环境(可以同时定义多个)等)，然后去解析标签
+将文件转换成`Document`之后，开始提取注册bean `XmlBeanDefinitionReader#registerBeanDefinitions` 
+
+`org.springframework.beans.factory.xml.DefaultBeanDefinitionDocumentReader#doRegisterBeanDefinitions` 先解析bean节点是否定义profile(用来在配置文件中部署不同的配置使用开发环境，生产环境(可以同时定义多个)等)，然后去解析标签
+
+```xml
+<!-- 根据环境加载 bean -->
+<beans profile="dev">
+	<bean id="" class=""/>
+</beans>
+
+<!-- web.xml 中配置当前环境 -->
+<context-param>
+	<param-name>spring.profiles.active</param-name>
+    <param-value>dev</param-value>
+</context-param>
+```
+
+
 
 ```text
-标签分为两种：
+标签分为两种(org.springframework.beans.factory.xml.BeanDefinitionParserDelegate#isDefaultNamespace(org.w3c.dom.Node))：
 1. 默认标签 <bean id="user" class="User" />
+org.springframework.beans.factory.xml.DefaultBeanDefinitionDocumentReader#parseDefaultElement
+
 2. 自定义标签 <tx:annotation-driven/>
-根据命名空间来区分解析
+org.springframework.beans.factory.xml.BeanDefinitionParserDelegate#parseCustomElement(org.w3c.dom.Element)
+
+根据命名空间来区分解析(默认的命名空间 "http://www.springframework.org/schema/beans")
 ```
+
+
 
 ### 3. 默认标签(import, alias, bean, beans)的解析
 
@@ -96,14 +119,13 @@ XmlBeanFactory.loadBeanDefinitions
 1. 解析元素：` BeanDefinitionDelegate#parseBeanDefinitionElement` 返回 `BeanDefinitionHolder`(
    包含配置文件中的各种属性` class, name, id, alias`)
 2. 如果存在默认标签的子节点下还有自定义属性，继续对自定义标签进行解析
-3. 注册`BeanDefinitionHolder`
+3. 注册`BeanDefinitionHolder` (`org.springframework.beans.factory.support.BeanDefinitionReaderUtils#registerBeanDefinition`)
 4. 发出响应事件，通知相关的监听器，说明这个bean已经加载完成了
 
 3.1.1 解析`BeanDefinition`
 
 1. 提取元素中的`id, name`
-2. 解析其他属性统一封装到`GenericBeanDefinition`(对象中的`class`, `parent`, 元数据, `lookup-method`, `replaced-method`, 构造函数参数, `property`
-   , `qualifier`等)
+2. 解析其他属性统一封装到`GenericBeanDefinition`(对象中的`class`, `parent`, 元数据, `lookup-method`, `replaced-method`, 构造函数参数, `property`, `qualifier`等)
 3. 如果bean没有名称，就用默认规则生成一个
 4. 将获取到的信息封装到`BeanDefinitionHolder`中
 
@@ -124,11 +146,11 @@ spring初始化时，会用`GenericBeanDefinition`或是`ConfigurationClassBeanD
 
 1. 创建用于属性承载的`BeanDefinition`，实际创建的是`GenericBeanDefinition`
 
-   `<bean> -> BeanDefinition(子类) RootBeanDefinition(没有父类)`，最后将`BeanDefinition`注册到`BeanDefinitionRegistry`中
+   `<bean> -> BeanDefinition(子类) RootBeanDefinition(没有父类，对应<bean>标签)`，最后将`BeanDefinition`注册到`BeanDefinitionRegistry`中
 
 2. 解析各种属性(`parseBeanDefinitionAttributes`)
 
-   解析bean的属性(`scope, lazy-init, autowired, primary, init-method...`)
+   解析bean的属性(`scope, lazy-init, autowired, dependncy-check, depends-on, autowired-candidate, primary, init-method, destory-method, factory-method, factory-bean`)
 
    `org.springframework.beans.factory.xml.BeanDefinitionParserDelegate#parseBeanDefinitionAttributes`
 
