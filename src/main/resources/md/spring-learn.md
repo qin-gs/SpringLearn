@@ -300,7 +300,7 @@ spring初始化时，会用`GenericBeanDefinition`或是`ConfigurationClassBeanD
 
 ### 5. bean的加载
 
-1. beanName转换(别名的情况)
+1. beanName转换(别名的情况，FactoryBean 的情况)
 2. 尝试从缓存中加载实例
 3. bean的实例化(处理工厂bean等)
 4. 原型模式的依赖检查(只有单例情况下会产生解决循环依赖)
@@ -339,7 +339,14 @@ spring初始化时，会用`GenericBeanDefinition`或是`ConfigurationClassBeanD
 
 #### 5.3 从bean实例中获取对象
 
-`AbstractBeanFactory.getObjectForBeanInstance`
+1. `AbstractBeanFactory.getObjectForBeanInstance` 
+
+2. `org.springframework.beans.factory.support.FactoryBeanRegistrySupport#getObjectFromFactoryBean` 
+
+3. `org.springframework.beans.factory.support.FactoryBeanRegistrySupport#doGetObjectFromFactoryBean` 
+
+4.  `factory.getObject() `  从 FactoryBean 中拿到真实对象
+5. `org.springframework.beans.factory.support.FactoryBeanRegistrySupport#postProcessObjectFromFactoryBean`  调用后置处理器 BeanPostProcessor
 
 检测bean的正确性(如果是`FactoryBean`则调用`getObject`，否则直接返回对象)
 
@@ -353,12 +360,36 @@ spring初始化时，会用`GenericBeanDefinition`或是`ConfigurationClassBeanD
 该方法会在创建`bean(singletonFactory.getObject)`前后执行一些操作(`beforeSingletonCreation`, `afterSingletonCreation`)
 
 1. 检查缓存是否已经加载过
+
 2. 如果没有加载，记录`beanName`的正在加载状态
+
 3. 加载单例前记录加载状态(`beforeSingletonCreation `将当前正要创建的bean记录到缓存中，便于循环依赖检测)
+
 4. 使用`ObjectFactory`实例化`bean`(`getObject`)
+
 5. 加载后调用处理方法(`afterSingletonCreation `移除bean的加载状态)
+
 6. 将bean放入缓存并清除bean加载过程中的各种辅助状态(就是清理上面的几个Map)
+
 7. 返回结果
+
+   ```java
+   // 第二个参数 ObjectFactory，每个 bean 创建过程中都会有一个
+   sharedInstance = getSingleton(beanName, () -> {
+   	try {
+   		return createBean(beanName, mbd, args);
+   	}
+   	catch (BeansException ex) {
+   		// Explicitly remove instance from singleton cache: It might have been put there
+   		// eagerly by the creation process, to allow for circular reference resolution.
+   		// Also remove any beans that received a temporary reference to the bean.
+   		destroySingleton(beanName);
+   		throw ex;
+   	}
+   });
+   ```
+
+   
 
 #### 5.5 创建bean
 
@@ -409,13 +440,13 @@ lookup-method, replace-method 两个配置会统一存放在BeanDefinition的met
 
 2. 实例化后的后处理应用
 
-   `postProcessAfterInstantiation`如果上面的bean不为空，就不会进行后面普通bean的创建过程，所以需要在这里调用后置处理方法
+   `postProcessAfterInitialization`如果上面的bean不为空，就不会进行后面普通bean的创建过程，所以需要在这里调用后置处理方法
 
 ```text
 先执行: 
 InstantiationAwareBeanPostProcessor extends BeanPostProcessor添加了两个方法
 	postProcessBeforeInstantiation 实例化前调用
-	postProcessAfterInstantiation 实例化后调用
+	postProcessAfterInstantiation 实例化后调用 (应用所有的 BeanPostProcessor#postProcessAfterInitialization 方法)
 
 后执行
 BeanPostProcessor接口两个方法
@@ -433,7 +464,7 @@ spring容器将每一个正在创建的bean标识符放在一个容器中，如�
 
 2. setter循环依赖
 
-   通过Spring容器**提前暴露**刚完成构造器注入但未完成其他步骤的bean完成的，提前暴露一个单例工厂方法(`ObjectFactory`)，使其他bean能引用到它
+   通过Spring容器**提前暴露**刚完成构造器注入但未完成其他步骤(如 setter 注入)的bean完成的，提前暴露一个单例工厂方法(`ObjectFactory`)，使其他bean能引用到它
 
 3. prototype的依赖处理
 
@@ -461,7 +492,7 @@ spring容器将每一个正在创建的bean标识符放在一个容器中，如�
 
 3. `MergeBeanDefinitionPostProcessor`应用
 
-   bean合并后的处理(`Autowired`注解通过此方法实现类型的与解析)
+   bean合并后的处理(`@Autowired`注解通过此方法实现类型的预解析)
 
 4. 依赖处理：如果AB有循环依赖，会通过放入缓存中的ObjectFactory来创建实例，解决循环依赖问题
 
@@ -480,6 +511,8 @@ spring容器将每一个正在创建的bean标识符放在一个容器中，如�
 `AbstractAutowireCapableBeanFactory#createBeanInstance`
 
 1. 如果`RootBeanDefinition`中存在`factoryMethodName`属性(配置文件中配置了`factory-method`)，会尝试用工厂方法生成bean
+
+    `org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory#instantiateUsingFactoryMethod`
 
 2. 解析构造函数进行实例化；由于可能存在多个构造函数，参数不同，根据参数类型判断使用哪个进行实例化；由于解析过程比较消耗性能，因此采用缓存，将已解析过的对象放到`RootBeanDefinition`中的`resolvedConstructorOrFactoryMethod`字段
 
@@ -522,7 +555,7 @@ spring容器将每一个正在创建的bean标识符放在一个容器中，如�
 
 **记录创建bean的ObjectFactory**
 
-`earlySingletonExposure`单例 + 运行循环依赖 + 正在创建 同时满足才会记录`ObjectFactory`
+`earlySingletonExposure` 单例 + 允许循环依赖 + 正在创建 同时满足才会记录`ObjectFactory`
 
 循环依赖处理：先创建A，在填充属性(`populateBean`)的时候发现依赖B，去创建B同时通过`ObjectFactory`提供的实例化方法中断A的属性填充，B中持有的A仅仅是刚初始化没有填充属性的A(`SmartInstantiationAwareBeanPostProcessor`)，而这正初始化A的步骤还是在最开始创建A的时候进行的，但是因为A与B中的A所表示的属性地址是一样的，所以在A中创建好的属性填充自然可以通过B中的A获取，这样就解决了循环依赖的问题。
 
