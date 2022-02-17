@@ -506,6 +506,14 @@ spring容器将每一个正在创建的bean标识符放在一个容器中，如�
 
 8. 完成创建并返回
 
+![处理循环依赖](../image/处理循环依赖.png)
+
+在创建A 的时候首先会记录类A 所对应的beanName，并将beanA 的创建工厂加入缓存中，而在对A的属性填充也就是调用populate方法的时候又会再一次的对B 进行递归创建。同样的，因为在B中同样存在A属性，因此在实例化B 的的populate方法中又会再次地初始化B，也就是图形的最后，调用getBean(A)。关键是在这里，有心的同学可以去找找这个代码的实现方式，我们之前已经讲过，在这个函数中并不是直接去实例化A ，而是先去检测缓存中是否有已经创建好的对应的bean ，或者是否已经创建好的Obj ectFactory ，而此时对于A 的ObjectFactory 我们早已经创建，所以便不会再去向后执行，而是直接调用ObjectFactory 去创建A。
+
+在B中创建依赖A 时通过ObjectFactory 提供的实例化方法来中断A 中的属性填充， 使B中持有的A仅仅是刚刚初始化并没有填充任何属性的A，而这正初始化A 的步骤还是在最开始创建A的时候进行的，但是因为A与B 中的A所表示的属性地址是一样的，所以在A中创建好的属性填充自然可以通过B中的A获取，这样就解决了循环依赖的问题。
+
+
+
 **创建bean实例**`AbstractAutowireCapableBeanFactory#doCreateBean`，具体过程如下：
 
 `AbstractAutowireCapableBeanFactory#createBeanInstance`
@@ -561,7 +569,7 @@ spring容器将每一个正在创建的bean标识符放在一个容器中，如�
 
 **属性注入**
 
-`AbstractAutowireCapableBeanFactory#populateBean 601`
+`AbstractAutowireCapableBeanFactory#populateBean`
 
 1. `InstantiationAwareBeanPostProcessor` 处理器的 `postProcessAfterInstantiation` 函数控制是否继续进行属性填充
 
@@ -593,20 +601,24 @@ spring容器将每一个正在创建的bean标识符放在一个容器中，如�
      - 通过转换器将bean的值转换成对应的类型(`Map, List, Set...`)
 
 3. 应用`InstantiationAwareBeanPostProcessor`的`postProcessPropertyValues`方法，对属性获取完毕填充前对属性再次处理
+   
    例如 `RequiredAnnotationBeanPostProcessor`类中对属性的验证
-
+   
 4. 将获取到的属性(PropertyValues)填充到BeanWrapper
-   `applyPropertyValues`
 
-       `MutablePropertyValues mpvs = (MutablePropertyValues) PropertyValues pvs`
-       1. 尝试转换(instanceof)PropertyValues -> MutablePropertyValues  
-            如果mpvs中的值已经被转换为对应的类型那么可以直接设置到BeanWrapper中
-       2. 如果pvs无法不是MutablePropertyValues，直接使用原始的属性获取方法  
-       3. 获取对应的解析器，遍历属性转换成对应的类型  
+   `populateBean` 最后调用 `applyPropertyValues`
+
+   ```
+   MutablePropertyValues mpvs = (MutablePropertyValues) PropertyValues pvs
+   1. 尝试转换(instanceof)PropertyValues -> MutablePropertyValues  
+        如果mpvs中的值已经被转换为对应的类型那么可以直接设置到BeanWrapper中
+   2. 如果pvs无法不是MutablePropertyValues，直接使用原始的属性获取方法  
+   3. 获取对应的解析器，遍历属性转换成对应的类型  
+   ```
 
 **初始化Bean**
 
-完成bean的实例化，并进行属性填充后，开始调用`init-method`方法进行初始化
+org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory#doCreateBean 中 通过完成bean的实例化，并 populateBean 进行属性填充后，开始调用`init-method`方法进行初始化
 
 `AbstractAutowireCapableBeanFactory.initializeBean(beanName, Bean, RootBeanDefinition)` 改方法的做作用
 
@@ -619,7 +631,10 @@ spring容器将每一个正在创建的bean标识符放在一个容器中，如�
 **注册DisposableBean**
 
 销毁方法的扩展入口 `AbstractBeanFactory.registerDisposableBeanIfNecessary`
+
 配置属性`destroy-method` 或实现 `DestructionAwareBeanPostProcessor`接口
+
+
 
 ### 6. 容器的功能扩展
 
@@ -640,7 +655,7 @@ ApplicationContext ac = new ClassPathXmlApplicationContext("bean-factory.xml", "
 
 #### 6.2 扩展功能
 
-配置文件的解析`AbstractApplicationContext.refresh`
+配置文件的解析`AbstractApplicationContext#refresh`
 
 1. 初始化准备(对系统属性 或 环境变量进行准备验证)
 
@@ -650,9 +665,11 @@ ApplicationContext ac = new ClassPathXmlApplicationContext("bean-factory.xml", "
 
 3. 对`BeanFactory`进行各种功能填充
 
-   `@Qualifier @Autowired`
+   完成 `@Qualifier @Autowired` 两个注解的功能
 
-4. 扩展：子类覆盖方法做额外处理
+4. 扩展：子类覆盖方法做额外处理 
+
+   `org.springframework.context.support.AbstractApplicationContext#postProcessBeanFactory`
 
 5. 激活`BeanFactory`处理器
 
@@ -663,6 +680,8 @@ ApplicationContext ac = new ClassPathXmlApplicationContext("bean-factory.xml", "
 8. 初始化应用消息广播器，放入`applicationEventMulticaster`这个bean中
 
 9. 扩展：子类初始化其他bean
+
+   `org.springframework.context.support.AbstractApplicationContext#onRefresh`
 
 10. 查找`listener `注册到广播器中
 
@@ -675,6 +694,12 @@ ApplicationContext ac = new ClassPathXmlApplicationContext("bean-factory.xml", "
 #### 6.3 环境准备
 
 `prepareRefresh`对系统属性 和 环境变量 的初始化验证
+
+保留了一个方法(`org.springframework.context.support.AbstractApplicationContext#initPropertySources`)留给子类覆盖
+
+同时验证需要的属性文件是否都放入环境中 (`org.springframework.core.env.ConfigurablePropertyResolver#validateRequiredProperties`)
+
+
 
 #### 6.4 加载BeanFactory
 
@@ -703,7 +728,7 @@ ApplicationContext ac = new ClassPathXmlApplicationContext("bean-factory.xml", "
 
 **加载BeanDefinition**
 
-`AbstractXmlApplicationContext.loadBeanDefinitions(DefaultListableBeanFactory)`
+`AbstractXmlApplicationContext#loadBeanDefinitions(DefaultListableBeanFactory)`
 
 初始化`beanFactory(DefaultListableBeanFactory)`
 
@@ -749,7 +774,23 @@ Spring在bean初始化时会有属性填充，通过调用`AbstractAutowireCapab
 
 1. 使用自定义属性编辑器(继承`PropertyEditorSupport`)
 
-   将属性编辑器注入`CustomeEditorConfigurer.customEditors`
+   将属性编辑器注入`org.springframework.beans.factory.config.CustomEditorConfigurer.customEditors`
+
+   ```xml
+   <bean class="org.springframework.beans.factory.config.CustomEditorConfigurer">
+       <property name="customEditors">
+           <map>
+               <entry key="java.util.Date">
+                   <bean class="com.spring.learn.inject.DataPropertyEditor">
+                       <property name="format" value="yyyy-MM-dd" />
+                   </bean>
+               </entry>
+           </map>
+       </property>
+   </bean>
+   ```
+
+   
 
 2. 使用Spring自带的属性编辑器(实现`PropertyEditorRegistrar`接口，重新`registerCustomEditors`方法)
 
@@ -789,8 +830,7 @@ bean的初始化后会调用ResourceEditorRegistrar.registerCustomEditors方法�
 
 ```text
 主要设置以下的Aware接口
-EnvironmentAware, EmbeddedValueResolverAware, ResourceLoaderAware, ApplicationEventPublisherAware, 
-MessageSourceAware, ApplicationStartupAware, ApplicationContextAware
+EnvironmentAware, EmbeddedValueResolverAware, ResourceLoaderAware, ApplicationEventPublisherAware, MessageSourceAware, ApplicationStartupAware, ApplicationContextAware
 ```
 
 **设置忽略依赖**

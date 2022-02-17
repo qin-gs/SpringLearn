@@ -1,0 +1,18 @@
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans.xsd"
+       >
+
+    <bean id="list" class="java.util.ArrayList">
+        <constructor-arg>
+            <list>
+                <value>a</value>
+                <value>b</value>
+            </list>
+        </constructor-arg>
+    </bean>
+
+    <bean id="listHolder" class="com.spring.learn.ignore.ListHolder"/>
+    <bean class="com.spring.learn.ignore.IgnoreAutowiringProcessor"/>
+</beans>
