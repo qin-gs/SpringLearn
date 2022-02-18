@@ -873,13 +873,13 @@ BeanFactoryPostProcessor的作用:
 
 用来读取配置文件中的值，用`${}`设置到bean中
 
-该类实现了`BeanFactoryPostProcessor`接口，当spring加载实现了这个接口的bean的配置时，会在bean工厂**载入所有bean的配置之后**执行里面的`postProcessBeanFactory`方法
+该类实现了`BeanFactoryPostProcessor`接口，当spring加载实现了这个接口的bean的配置时，会在bean工厂**载入所有bean的配置之后**执行里面的`org.springframework.beans.factory.config.PropertyResourceConfigurer#postProcessBeanFactory`方法
 
 - 得到配置
 - 将得到的配置转换成合适的类型
 - 将配置告诉`BeanFactory`，
 
-所以`BeanFactory`会在实例化任何bean之前获得配置信息，去解析文件中的引用
+所以`BeanFactory`会在实例化任何bean之前获得配置信息，去解析文件中的变量引用
 
 ![PropertyPlaceholderConfigurer继承关系](../image/PropertyPlaceholderConfigurer继承关系.png)
 
@@ -898,6 +898,8 @@ BeanFactoryPostProcessor的作用:
 
 1. `BeanDefinitionRegistry `硬编码的处理器 添加到`AbstractApplicationContext#beanFactoryPostProcessors`中，其中 `BeanDefinitionRegistryPostProcessor` 继承自 `BeanFactoryPostProcessor`，还有自己定义的方法，因此需要从上面的`beanFactoryPostProcessors`中选出来，调用``postProcessBeanDefinitionRegistry` 方法
 
+    ![BeanDefinitionRegistryPostProcessor继承关系](../image/BeanDefinitionRegistryPostProcessor继承关系.png)
+
 2. 记录后置处理器的List
 
     - registryPostProcessors 记录通过硬编码注册的 `BeanDefinitionRegistryPostProcessor`
@@ -908,7 +910,7 @@ BeanFactoryPostProcessor的作用:
 
 3. 对上面三个List里面的所有后置处理器统一调用 `postProcessBeanFactory`
 
-4. 对`beanFactoryPostProcessors`中的非`BeanDefinitionRegistryPostProcessor`调用 `postProcessBeabFactory`
+4. 对`beanFactoryPostProcessors`中的非`BeanDefinitionRegistryPostProcessor`调用 `postProcessBeanFactory`
 
 5. 普通beanFactory处理
 
@@ -992,6 +994,8 @@ spring提供`Lifecycle`接口，保证启动的时候调用start方法开始生�
 2. onRefresh：启动所有实现了`Lifecycle`接口的bean
 3. publishEvent：完成`ApplicationContext`初始化之后，发布`ContextRefreshEvent`事件，监听器可以做一些逻辑处理
 
+
+
 ### 7. AOP
 
 #### 7.1 使用实例
@@ -1017,6 +1021,8 @@ spring提供`Lifecycle`接口，保证启动的时候调用start方法开始生�
    如果已存在自动代理创建器 并且 和现在的不一致，需要根据优先级判断使用哪一个
    
 2. 处理 `proxy-target-class` 和 `expose-proxy` 属性
+
+   `org.springframework.aop.config.AopNamespaceUtils#useClassProxyingIfNecessary`
 
    `proxy-target-class`: spring会使用 jdk动态代理 和 cglib动态代理 为目标对象创建代理对象
 

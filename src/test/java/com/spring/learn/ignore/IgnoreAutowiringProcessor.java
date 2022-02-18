@@ -10,6 +10,6 @@ import java.util.List;
 public class IgnoreAutowiringProcessor implements BeanFactoryPostProcessor {
     @Override
     public void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) throws BeansException {
-        beanFactory.ignoreDependencyType(ArrayList.class);
+        beanFactory.ignoreDependencyType(List.class);
     }
 }
