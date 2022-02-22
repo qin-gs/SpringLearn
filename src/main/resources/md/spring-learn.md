@@ -1057,23 +1057,27 @@ spring提供`Lifecycle`接口，保证启动的时候调用start方法开始生�
 
 `AnnotationAwareAspectJAutoProxyCreator`
 
-`AbstractAutoProxyCreator.postProcessAfterInitialization`
+`AbstractAutoProxyCreator#postProcessAfterInitialization`
 
 该类实现`BeanPostProcessor`接口，当spring加载这个bean时，会在实例化前调用`postProcessAfterInitialization`方法(在父类`AbstractAutoProxyCreator`中)
 
-真正创建代理(`AbstractAdvisorAutoProxyCreator.getAdvicesAndAdvisorsForBean`)
+真正创建代理(`AbstractAdvisorAutoProxyCreator#getAdvicesAndAdvisorsForBean`)
 
 获取普通bean的增强方法：
 
- - 获取所有的增强(`findCandidateAdvisors`)
+`org.springframework.aop.framework.autoproxy.AbstractAdvisorAutoProxyCreator#findEligibleAdvisors`
 
- - 查找所有增强中适用于bean的增强并应用(`findAdvisorsThatCanApply`)
+ - 获取所有的增强(`org.springframework.aop.framework.autoproxy.AbstractAdvisorAutoProxyCreator#findCandidateAdvisors`)
+
+ - 查找所有增强中适用于bean的增强并应用(`org.springframework.aop.framework.autoproxy.AbstractAdvisorAutoProxyCreator#findAdvisorsThatCanApply`)
 
 如果找不到返回null
 
 **获取增强器**
 
-`AnnotationAwareAspectJAutoProxyCreator.findCandidateAdvisors`该类也继承了`AbstractAdvisorAutoProxyCreator`
+`AnnotationAwareAspectJAutoProxyCreator#findCandidateAdvisors`
+
+该类也继承了`AbstractAdvisorAutoProxyCreator`
 
 该类有父类获取**配置文件**中定义的增强 和 获取bean的**注解**增强
 
@@ -1081,7 +1085,7 @@ spring提供`Lifecycle`接口，保证启动的时候调用start方法开始生�
 
 - 调用本类方法加载bean的增强注解(`buildAspectJAdvisors`)
 
-`BeanFactoryAspectJAdvisorsBuilder.buildAspectJAdvisors`
+`BeanFactoryAspectJAdvisorsBuilder#buildAspectJAdvisors`
 
 1. 获取所有的`beanName`(所有`beanFactory`中注册的bean)
 2. 遍历`beanName`， 找出声明`@AspectJ`的类
@@ -1091,7 +1095,9 @@ spring提供`Lifecycle`接口，保证启动的时候调用start方法开始生�
     1. 获取普通增强器
         - 对切点注解信息的获取(`ReflectiveAspectJAdvisorFactory.getPointcut`)
           
-          主要搜索以下注解`Pointcut.class, Around.class, Before.class, After.class, AfterReturning.class, AfterThrowing.class`
+          主要搜索方法上的以下注解`Pointcut.class, Around.class, Before.class, After.class, AfterReturning.class, AfterThrowing.class`，提取得到的注解中的表达式
+          
+          使用 `AspectJExpressionPointcut `实例封装获取的信息
           
         - 根据切点信息生成增强器(`ReflectiveAspectJAdvisorFactory#getAdvisor返回增强器`)
           
@@ -1103,8 +1109,9 @@ spring提供`Lifecycle`接口，保证启动的时候调用start方法开始生�
           实现逻辑 `MethodBeforeAdviceInterceptor`
           
           `AbstractAspectJAdvice.invokeAdviceMethodWithGivenArgs`
-          前置增强：在拦截器链中放置`MethodBeforeAdviceInterceptor`，在其中又放置了`AspectJMethodBeforeAdvice`，在invoke方法时串联调用
-          后置增强：直接在拦截器链中使用`AspectJAfterAdvice`
+          
+          - 前置增强：在拦截器链中放置`MethodBeforeAdviceInterceptor`，在其中又放置了`AspectJMethodBeforeAdvice`，在invoke方法时串联调用
+          - 后置增强：直接在拦截器链中使用`AspectJAfterAdvice`
         
     2. 配置中可能将增强配置成延迟初始化，如果寻找的增强器不为空并配置了增强延迟初始化，需要在首位加入同步实例化增强器保证增强使用之前的实例化(`SyntheticInstantiationAdvisor`)
        
@@ -1116,15 +1123,15 @@ spring提供`Lifecycle`接口，保证启动的时候调用start方法开始生�
 
 **寻找匹配的增强器**
 
-`AbstractAdvisorAutoProxyCreator.findAdvisorsThatCanApply`
+`AbstractAdvisorAutoProxyCreator#findAdvisorsThatCanApply`
 
 上面解析出了所有的增强器，对每个bean挑选出合适(通配符)的增强器
 
-先处理引介增强(`IntroductionAdvisor`)，然后处理普通增强；两者的匹配逻辑不同分开处理
+先处理引介增强(`IntroductionAdvisor`)，然后处理普通增强；两者的匹配逻辑不同分开处理 (`MethodMatcher`)
 
 **创建代理**
 
-获取到对应bean的增强器之后，创建代理对象`AbstractAutoProxyCreator.createProxy`
+获取到对应bean的增强器之后，创建代理对象`AbstractAutoProxyCreator#createProxy`
 
 代理类的创建交给`ProxyFactory`处理，先进行`ProxyFactory`的初始化
 
@@ -1170,7 +1177,7 @@ spring提供`Lifecycle`接口，保证启动的时候调用start方法开始生�
       只是记录链接调用的计数器，记录当前调用链接的位置，递归调用`proceed`方法保证有序进行
 
       - 普通拦截器，直接调用`invoke`方法
-      - `InterceptorAndDynamicMethodMatcher `调用里面的拦截器的方法
+      - `InterceptorAndDynamicMethodMatcher `动态匹配，调用里面的拦截器的方法
 
     - 返回结果
 
@@ -1190,14 +1197,14 @@ spring提供`Lifecycle`接口，保证启动的时候调用start方法开始生�
        jdk动态代理： 直接构造ReflectiveMethodInvocation  
        cglib代理：使用CglibMethodInvocation(extends ReflectiveMethodInvocation, 没有重写proceed方法)
        
-   proceed方法会记录当前调用链接的位置，递归调用所有i拦截器的invoke方法
+   proceed方法会记录当前调用链接的位置，递归调用所有拦截器的invoke方法
    ```
 
 ![动态代理的拦截器链](../image/动态代理的拦截器链.png)
 
 #### 7.4 静态aop使用
 
-​	加载时织入(load-time weaving)：虚拟机载入字节码文件时动态织入`AspectJ`切面
+​	加载时织入(`load-time weaving`)：虚拟机载入字节码文件时动态织入`AspectJ`切面
 
 #### 7.5 创建aop静态代理
 
@@ -1477,6 +1484,8 @@ MapperFactoryBean 实现了两个接口 InitializingBean, FactoryBean
    `ClassPathBeanDefinitionScanner.scan`
    `doScan`中`findCandidateComponents`方法根据传入的包路径信息结合文件路径拼接成文件绝对路径，同时完成文件扫描过程，并根据对应文件生成对应的bean，使用`ScannedGenericBeanDefinition`类型的bean承载信息，bean中只记录了resource和source信息，`iscandidateComponent`方法判断当前文件是否符合要求(使用上面的`includeFilters`, `excludeFilters`)
 
+
+
 ### 10. 事务
 
 #### 10.1 jdbc使用事务
@@ -1507,7 +1516,7 @@ MapperFactoryBean 实现了两个接口 InitializingBean, FactoryBean
 
 创建并注册三个bean
 
-- TransactionAttributeSource  
+- AnnotationTransactionAttributeSource
 
 - TransactionInterceptor(事务增强器(拦截器)invoke方法完成整个事务的逻辑)
 
@@ -1585,7 +1594,7 @@ MapperFactoryBean 实现了两个接口 InitializingBean, FactoryBean
    编程式事务，声明式事务两者的区别：
 
    - 编程式事务不需要事务属性
-   - `CallbackPreferringPlatformTransactionManager`实现了`TransactionManager`接口，暴露除一个方法用于执行事务处理中的回调
+   - `CallbackPreferringPlatformTransactionManager`实现了`TransactionManager`接口，暴露出一个方法用于执行事务处理中的回调
 
 4. 在目标方法执行前获取事务并收集事务信息(`TransactionInfo`：包含事务属性信息，还有`PlateformTransactionManager, TransactionStatus`)
 
