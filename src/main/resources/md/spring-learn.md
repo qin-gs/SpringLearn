@@ -1606,7 +1606,9 @@ MapperFactoryBean 实现了两个接口 InitializingBean, FactoryBean
 
 8. 提交事务
 
-**创建事务**(`TransactionAspectSupport#createTransactionIfNecessary`)
+**创建事务** 
+
+DataSourceTransactionObject (`TransactionAspectSupport#createTransactionIfNecessary`)
 
 - 如果没有指定名称则使用方法唯一标识，使用`DelegatingTransactionAttribute`封装`TransactionAttribute(实际为RuleBasedTransactionAttribute)`(获取事务属性时生成)
 
@@ -1691,11 +1693,11 @@ MapperFactoryBean 实现了两个接口 InitializingBean, FactoryBean
 
   自定义触发器的调用，激活所有`TransactionSynchronization`中的对应方法
 
-  如果有保存点，说明当前事务为单独的线程则退到保存点(通常是nested嵌套事务)，使用`JdbcTransactionObjectSupport#rollbackToSavepoint`完成
+  - 如果有保存点，说明当前事务为单独的线程则退到保存点(通常是nested嵌套事务)，使用`JdbcTransactionObjectSupport#rollbackToSavepoint`完成
 
-  如果当前事务为独立的新事务，直接回滚，使用`DataSourceTransactionManager`回滚
+  - 如果当前事务为独立的新事务，直接回滚，使用`DataSourceTransactionManager`回滚
 
-  如果当前事务不是独立的事务，标记状态等到事务链执行完毕后统一回滚(通常是JTA)
+  - 如果当前事务不是独立的事务，标记状态等到事务链执行完毕后统一回滚(通常是JTA)
 
 - 回滚后信息清除
 
@@ -1826,7 +1828,29 @@ web中，需要将路径通过param-value注册并使用ContextLoaderListener监
 
 自定义一个`ServletContextListener(ServletContextListener)`，注册到`web.xml`中，可以在任意`servlet`或`jsp`中获取
 
+```java
+public class MyListener implements ServletContextListener {
+
+	private ServletContext context;
+
+	@Override
+	public void contextInitialized(ServletContextEvent sce) {
+		context = sce.getServletContext();
+		context.setAttribute("key", "value"); // 放入一些属性
+	}
+
+	@Override
+	public void contextDestroyed(ServletContextEvent sce) {
+		this.context = null;
+	}
+}
+```
+
+
+
 **spring中的ContextLoaderListener类**
+
+![ContextLoaderListener继承关系](../image/ContextLoaderListener继承关系.png)
 
 `ContextLoaderListener.contextInitialized`方法中初始化了`WebApplicationContext`
 
@@ -1836,9 +1860,11 @@ web中，需要将路径通过param-value注册并使用ContextLoaderListener监
 
    配置中只允许声明一次`ServletContextListener`
 
-2. 创建`WebApplicationContext`实例 检测通过后，通过`createWebApplicationContext`方法创建实例
+2. 创建`WebApplicationContext`实例 
 
-   初始化过程中，读取`ContextLoader`类同目录下的属性文件，根据配置提取将要实现`WebApplicationContext`接口的实现类，反射创建
+   检测通过后，通过`createWebApplicationContext`方法创建实例
+
+   初始化过程中，读取`ContextLoader`类同目录下的属性文件，根据配置提取将要实现`WebApplicationContext`接口的实现类`org.springframework.web.context.support.XmlWebApplicationContext`，反射创建
 
 3. 将实例记录在`servletContext`中
 
@@ -1908,14 +1934,18 @@ servlet接口的实现类 生命周期：初始化，运行，销毁
     
 2. `configureAndRefreshWebApplicationContext`
 
-   使用父类`AbstractApplicationContext`提供的refresh进行配置文件加载
+   配置参数，并使用父类`AbstractApplicationContext`提供的`org.springframework.context.ConfigurableApplicationContext#refresh`方法进行配置文件加载
 
 3. 刷新`FrameworkServlet#onRefresh`
 
+   这个是 `org.springframework.web.servlet.FrameworkServlet#onRefresh` 中的方法
+
+   `org.springframework.context.ConfigurableApplicationContext#refresh` 这是上下文中的方法
+
    `FrameServlet`提供的方法，`DispatcherServlet`进行了重写，用来刷新`spring`在`web`功能中必须使用的全局变量，依次初始化以下九个对象
-
+   
     1. `MultipartResolver` ：处理文件上传
-
+   
     2. `LocalResolver`
        
        国际化配置
@@ -1929,9 +1959,9 @@ servlet接口的实现类 生命周期：初始化，运行，销毁
        主题功能
 
         1. 主题资源
-
+   
            `ThemeSource`接口，存放主题信息的资源
-
+   
         2. 主题解析器
             1. 固定的主题解析器(`FixedThemeResolver`)
             2. 基于`session`的主题解析器(`SessionThemeResolver`)
@@ -1946,6 +1976,26 @@ servlet接口的实现类 生命周期：初始化，运行，销毁
 
        `DispatcherServlet`将请求提交给`HandlerMapping`，然后根据`WebApplicationContext`的配置传给相应的`Controller`，自己可以提供多个`HandlerMapping`，根据优先级排序，也可以通过参数只指定一个，默认加载`org.springframework.web.servlet.DispatcherServlet.properties`文件中的默认配置(`BeanNameUrlHandlerMapping, RequestMappingHandlerMapping, RouterFunctionMapping`)
 
+       ```xml
+       <servlet>
+       	<servlet-name>dispatcherServlet</servlet-name>
+       	<servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
+       	<init-param>
+       		<param-name>contextConfigLocation</param-name>
+       		<param-value>classpath:spring/spring-mvc.xml</param-value>
+       	</init-param>
+       	<init-param>
+       		<param-name>detectAllHandlerMappings</param-name>
+       		<param-value>false</param-value> <!-- 设置该参数只会加载名为 handlerMapping 的 bean -->
+       	</init-param>
+       	<load-on-startup>1</load-on-startup>
+       </servlet>
+       <servlet-mapping>
+       	<servlet-name>dispatcherServlet</servlet-name>
+       	<url-pattern>/</url-pattern>
+       </servlet-mapping>
+       ```
+
     5. `HandlerAdapters`
 
        适配器，如果没有配置会默认加载三个
@@ -1953,29 +2003,39 @@ servlet接口的实现类 生命周期：初始化，运行，销毁
         1. `HttpRequestsHandlerAdapter`(应用于远程调用)
         2. `SimpleControllerHandlerAdapter`简单控制器处理器适配器
         3. `AnnotationMethodHandlerAdapter`注解方法处理器适配器
-
+   
     6. `HandlerExceptionResolver` 
-
+   
        异常处理器，`resolveException`方法需要返回一个`ModelAndView`;
-
+   
     7. `RequestToViewNameTranslator` 
-
-       `Controller`处理器中没有返回`view`对象或视图名称，并且没有直接向`response`的输出流中写入数据时，`spring`会提供一个逻辑视图名称，其默认实现为`DefaultRequestToViewNameTranslator`，该类会将获取到请求的`uri`，根据提供的属性做一些改造，将改造之后的结果作为视图名称返回，允许用户的配置：` prefix, suffix, separator, stripLeadingSlash, stripTrailingSlash, stripExtension`
-
+   
+       `Controller`处理器中没有返回`view`对象或视图名称，并且没有直接向`response`的输出流中写入数据时，`spring`会提供一个逻辑视图名称，其默认实现为`DefaultRequestToViewNameTranslator`
+   
+       该类会将获取到请求的`uri`，根据提供的属性做一些改造，将改造之后的结果作为视图名称返回，允许用户的配置：` prefix, suffix, separator, stripLeadingSlash, stripTrailingSlash, stripExtension`
+   
+       ```java
+       @RequestMapping("com")
+       @GetMapping("example")
+       public void example() {
+           // 如果该方法没有返回值，该类会自动找 /com/example 页面
+       }
+       ```
+   
     8. `ViewResolver` 
-
+   
        视图解析器，默认是`InternalResourceViewResolver`
-
+   
     9. `FlashMapManager`
-
+   
        提供请求存储属性；`flash attributes`在重定向前暂存以便重定向之后还能使用，并立刻删除
-
+   
        - `FlashMap`: 用于保持 `flash map`
-
+   
        - `FlashMapManager`: 用于存储，管理，检测`FlashMap`
-
+   
        可以通过 `RequestContextUtils` 获取
-
+   
        ```java
        // 获取当前线程的request
        HttpServletRequest request = ((ServletRequestAttributes)(RequestContextHolder.getRequestAttributes())).getRequest();
@@ -2005,7 +2065,7 @@ servlet接口的实现类 生命周期：初始化，运行，销毁
     2. 根据`request`寻找`Handler`，并加入拦截器到执行链(如果没有找到，通过`response`返回错误信息)
 
        `spring`启动时会将所有映射类型的`bean`注册到`this.handlerMappings中`
-       根据`url`找到匹配的`Controller`返回，如果没有找到尝试去查找默认处理器，如果查找到的是`string`，意味着返回的是`bean`名称，根据名称取擦或者`bean`
+       根据`url`找到匹配的`Controller`返回，如果没有找到尝试去查找默认处理器，如果查找到的是`string`，意味着返回的是`bean`名称，根据名称查找`bean`
 
        用`HandlerExecutionChain`对返回的`Handler`进行封装
 
@@ -2095,7 +2155,7 @@ servlet接口的实现类 生命周期：初始化，运行，销毁
 
         2. 页面跳转 `AbstractView#render`
 
-           处理跳转逻辑，将放入`ModelAndView`的属性放入`request`中(`InternalResourceView#renderMergedOutputModel`)，以便在页面上直接通过jstl语法或原始request获取
+           处理跳转逻辑，将放入`ModelAndView`的属性放入`request`中 (`InternalResourceView#renderMergedOutputModel`)，以便在页面上直接通过jstl语法或原始request获取
 
     13. 完成处理后激活触发器
 
@@ -2103,7 +2163,7 @@ servlet接口的实现类 生命周期：初始化，运行，销毁
 
 4. 请求处理结束后恢复线程到原始状态
 
-5. 请求结束以后无论是否成功发布事件通知
+5. 请求结束以后无论是否成功发布事件通知 (`ServletRequestHandledEvent`)
 
 
 
@@ -2368,7 +2428,7 @@ org.springframework.web.servlet.handler.AbstractHandlerMethodMapping#lookupHandl
 
 `@SpringBootApplication -> **@EnableAutoConfiguration** -> @Import -> EnableAutoConfigurationImportSelector.class / AutoConfigurationImportSelector.class`
 
-该类只有一个函数`isEnabled`，调用者`AutoConfigurationImportSelector`
+该类只有一个函数`isEnabled`，调用者`org.springframework.boot.autoconfigure.AutoConfigurationImportSelector#selectImports`
 
 **spring.factories的加载**
 
@@ -2391,7 +2451,7 @@ AutoConfigurationImportSelector#selectImports -> getCandidateConfigurations -> S
 
 `Starter`需要将自身入口配置写入`META-INF`文件下的`spring.factories`
 
-`AutoConfigurationImportSelector#selectImports`返回上面文件中的配置类(`String[]`) // TODO 没有找到
+`AutoConfigurationImportSelector#selectImports`返回上面文件中的配置类(`String[]`)
 
 `ConfigurationClassParser#processImports`调用上面的方法，Spring在启动的时候会扫描所有jar中的`spring.factories` 处理流程：
 
@@ -2407,7 +2467,7 @@ AutoConfigurationImportSelector#selectImports -> getCandidateConfigurations -> S
 
 **ComponentScan切入点**
 
-`ConfigurationClassParser.doProcessConfigurationClass`处理各种注解
+`ConfigurationClassParser#doProcessConfigurationClass`处理各种注解
 
 先找出所有的`@ComponentScan`注解信息，委托给`ComponentScanAnnotationParser`进行扫描
 
