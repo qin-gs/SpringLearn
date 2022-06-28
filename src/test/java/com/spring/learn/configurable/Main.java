@@ -1,14 +1,15 @@
-package com.spring.learn.test;
+package com.spring.learn.configurable;
 
-import com.spring.learn.configurable.Config;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
-import java.util.Arrays;
+/**
+ * 注解 @EnableSpringConfigured + @Configurable；让 new 出来的对象也能被注入属性
+ */
+public class Main {
 
-public class IocTest {
     public static void main(String[] args) {
         AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext(Config.class);
-        String[] names = context.getBeanDefinitionNames();
-        Arrays.stream(names).forEach(System.out::println);
+        Controller controller = new Controller();
+        controller.hello();
     }
 }

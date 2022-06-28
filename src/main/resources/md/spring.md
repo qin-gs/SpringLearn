@@ -169,42 +169,58 @@ invokeBeanFactoryPostProcessors
 4. 从容器中找到 BeanFactoryPostProcessor组件，依次触发 触发 postProcessBeanFactory
 ```
 
-ApplicationListener  
+ApplicationListener
+
 监听容器中发布的事件(ApplicationEvent)，事件驱动模型的开发
 
 1. 实现一个监听器(ApplicationEvent)来监听某个事件，并加入容器
 2. 默认有两个 容器刷新完成(ContextRefreshedEvent) 容器关闭(ContextClosedEvent)
 3. 发表事件 context.publishEvent()
 
-@EventListener注解 使用EventListenerMethodProcessor完成 实现了 SmartInitializingSingleton 接口  
-refresh -> finishBeanFactoryInitialization  
-先实例化单例bean；  
+@EventListener注解 使用EventListenerMethodProcessor完成 实现了 SmartInitializingSingleton 接口
+
+refresh -> finishBeanFactoryInitialization
+
+先实例化单例bean；
+
 然后遍历所有的bean，检查时候实现了SmartInitializingSingleton接口
 
-原理  
+原理
+
 refresh -> finishRefresh -> publishEvent -> getApplicationEventMulticaster().multicastEvent(applicationEvent, eventType)
 ;
 
 1. 创建容器(refresh)，刷新完成(finishRefresh)
+
 2. publishEvent 发布事件
-3. 获取时间多播器(getApplicationEventMulticaster)，派发事件(multicastEvent)  
-   refresh -> initApplicationEventMulticaster  
-   先去容器中找有没有id='applicationEventMulticaster'的组件，有的话直接使用  
+
+3. 获取时间多播器(getApplicationEventMulticaster)，派发事件(multicastEvent)
+
+4. refresh -> initApplicationEventMulticaster
+
+   先去容器中找有没有id='applicationEventMulticaster'的组件，有的话直接使用
+
    没有的话创建一个(赋值给applicationEventMulticaster)放入容器中
-4. 获取所有的ApplicationListener，如果有Executor，进行多线程异步派发；否则执行按顺序派发  
-   refresh -> registerListeners  
+
+4. 获取所有的ApplicationListener，如果有Executor，进行多线程异步派发；否则执行按顺序派发
+   
+   refresh -> registerListeners
+   
    从容器中拿到所有的监听器，注册到上面的applicationEventMulticaster
 
-Spring容器创建过程  
+Spring容器创建过程
+
 refresh()
 
 1. prepareRefresh 刷新预处理
     1. initPropertySources 初始化一些属性，子容器自定义一些个性化的属性
     2. validateRequiredProperties 属性校验
     3. new LinkedHashSet 保存容器中的一些事件 ApplicationEvent
+    
 2. obtainFreshBeanFactory 获取bean工厂
     1. refreshBeanFactory 创建了一个 DefaultListableBeanFactory，配置id
     2. getBeanFactory 返回上面创建的
+    
 3. prepareBeanFactory 设置上面的beanFactory
     1. 设置BeanFactory的类加载器，支持表达式解析器
     2. 添加一个BeanPostProcessor(ApplicationContextAwareProcessor)
@@ -216,20 +232,90 @@ refresh()
         1. environment -> ConfigurationEnvironment
         2. systemProperties -> Map<String, Object>
         3. systemEnvironment -> Map<String, Object>
+    
 4. postProcessBeanFactory 后置处理(子类通过重写这个方法在BeanFactory创建并预准备完成以后做进一步设置)
+
 5. invokeBeanFactoryPostProcessors 执行BeanFactoryPostProcessor后置处理器(在BeanFactory初始化之后执行)
     1. 两个接口BeanFactoryPostProcessor，BeanDefinitionRegistryPostProcessor
+    
     2. 执行 BeanDefinitionPostProcessor 方法
         1. 获取所有的BeanDefinitionRegistryPostProcessor
         2. 先执行实现了 PriorityOrdered 优先级接口的 BDRPP
         3. 然后执行实现了 Ordered 顺序接口的 BDRPP
         4. 最后执行没有实现任何接口的 BDRPP
-    3. 执行 BeanFactoryPostProcessor 方法  
+        
+    3. 执行 BeanFactoryPostProcessor 方法
+    
        逻辑同上
+    
 6. registerBeanPostProcessors 执行BeanPostProcessor 拦截bean创建过程
     1. 获取所有的BeanPostProcessor
 
+
+
+
+
 ### Spring生命周期
+
+
+
+### autowired 注入原理
+
+- 构造函数注入
+- 属性注入
+- 方法注入
+
+
+
+`org.springframework.beans.factory.annotation.AutowiredAnnotationBeanPostProcessor`
+
+- `postProcessMergedBeanDefinition`：找到 `bean` 中所有被 `@Autowired` 注解的属性，封装成 `InjectedElement` 
+
+  - 外层 `do … while … `的循环被用于递归的查找父类的`@Autowired`属性或方法
+
+  - 通过反射的方式获取到所有属性并循环验证每一个**属性**是否被`@Autowired`注解
+
+  - 将查找到包含`@Autowired`注解的filed封装成`AutowiredFieldElement`，加入到列表中
+
+  - 循环查找在方法上的注解
+
+  - 将找到的**方法**封装成`AutowiredMethodElement`，并加入列表
+
+    ![将被autowired注解的封装成两种对象](../image/将被autowired注解的封装成两种对象.png)
+
+- `postProcessProperties`：进行注入
+
+  - 属性注入
+
+    `org.springframework.beans.factory.annotation.AutowiredAnnotationBeanPostProcessor.AutowiredFieldElement#inject`
+
+    ```java
+    // 只有一个 value
+    field.set(bean, value);
+    ```
+
+  - 方法注入
+
+    `org.springframework.beans.factory.annotation.AutowiredAnnotationBeanPostProcessor.AutowiredMethodElement#inject`
+
+    ```java
+    // 构造函数可能有多个参数，需要循环都获取到
+    method.invoke(bean, arguments);
+    ```
+
+bean 的创建过程：实例化，填充，初始化
+
+<img src="../image/bean的创建过程.png" style="zoom:50%;" />
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -1,6 +1,6 @@
 package com.spring.learn.resource;
 
-import com.spring.learn.config.Config;
+import com.spring.learn.configurable.Config;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;

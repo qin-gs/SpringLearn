@@ -2515,13 +2515,166 @@ AutoConfigurationImportSelector#selectImports -> getCandidateConfigurations -> S
 初始化过程：
 
 1. 初始化`MutablePropertySources`
+
+   使用 Environment 初始化该对象，该类价升了单独加载自定义额外属性的功能
+
 2. 初始化`PropertySourcesPropertyResolver`
+
+   继续封装上面的MutablePropertySources，提供变量解析功能
+
 3. 初始化`StringValueResolver`
+
+   进一步封装解析逻辑 (变量无法解析：忽略/抛异常)
+
 4. 注册`StringValueResolver`
 
+   environment 的初始化过程是通过 ConfigFileApplicationListener 完成的
 
 
 
+#### 14.7 tomcat 启动
+
+`org.springframework.boot.autoconfigure.web.servlet.ServletWebServerFactoryAutoConfiguration`
+
+4 个 `@Import`
+
+```java
+@Import({ ServletWebServerFactoryAutoConfiguration.BeanPostProcessorsRegistrar.class,
+		ServletWebServerFactoryConfiguration.EmbeddedTomcat.class,
+		ServletWebServerFactoryConfiguration.EmbeddedJetty.class,
+		ServletWebServerFactoryConfiguration.EmbeddedUndertow.class })
+
+// 注入的 bean 如下
+// 1. BeanPostProcessorsRegistrar
+// WebServerFactoryCustomizerBeanPostProcessor, ErrorPageRegistrarBeanPostProcessor
+
+// 2. EmbeddedTomcat
+// TomcatServletWebServerFactory
+
+// 3. EmbeddedJetty
+// JettyServletWebServerFactory
+
+// 4. EmbeddedUndertow
+// UndertowServletWebServerFactory, UndertowServletWebServerFactoryCustomizer
+```
+
+启动入口 `org.springframework.boot.web.servlet.context.ServletWebServerApplicationContext#onRefresh`
+
+获取所有的定制器 (`org.springframework.boot.web.server.WebServerFactoryCustomizer`)，执行定制器的方法
+
+`org.springframework.boot.web.server.WebServerFactoryCustomizerBeanPostProcessor`
+
+获取服务器
+
+`org.springframework.boot.web.servlet.server.ServletWebServerFactory#getWebServer `
+
+
+
+
+
+
+
+
+
+
+
+---
+
+### 拾遗
+
+
+
+#### 1. ConfigurationClassParser
+
+
+
+#### 2. ImportBeanDefinitionRegistrar
+
+1. 外部依赖类无法自动扫描和初始化，使用 `ImportBeanDefinitionRegistrar` 手动注入和初始化
+2. 外部依赖服务只有接口没有实现，重写 `ImportBeanDefinitionRegistrar` 接口拿到后根据协议和接口生成代理实现并实例化,供本地化调用
+
+执行时机：
+
+```
+AbstractApplicationContext#refresh
+AbstractApplicationContext#invokeBeanFactoryPostProcessors
+ConfigurationClassPostProcessor#processConfigBeanDefinitions  # 解析 @Configuration 注解 (ConfigurationClassParser)
+ConfigurationClassParser#doProcessConfigurationClass
+  @PropertySource
+  @ComponentScan
+  @Import
+  ConfigurationClassParser#processImports// 这里处理 ImportSelector 和 ImportBeanDefinitionRegistrar
+  @ImportResource
+  @Bean
+
+
+// 加载找到的 bean
+ConfigurationClassBeanDefinitionReader#loadBeanDefinitionsForConfigurationClass
+```
+
+使用场景：
+
+- mybatis 接口实例化
+
+  - `@MapperScan` 注解由 `MapperScannerRegistrar` 驱动
+
+  - `MapperScannerRegistrar` 实现了 `ImportBeanDefinitionRegistrar` 接口重写`registerBeanDefinitions` 方法,手动注入了 `MapperScannerConfigurer`
+
+  - `MapperScannerConfigurer` 又实现了 `BeanDefinitionRegistryPostProcessor` 接口,重写 `postProcessBeanDefinitionRegistry` 方法扫描DAO接口并注册 `BeanDefinition` 到容器中
+
+- Openfeign 接口实例化
+
+  - @EnableFeignClients注解由FeignClientsRegistrar驱动
+
+  - 其实现了ImportBeanDefinitionRegistrar接口重写registerBeanDefinitions方法,使用ClassPathScanningCandidateComponentProvider扫描basePackages路径下被@FeignClient标记的接口
+
+  - 然后注册成FeignClientFactoryBean类型的BeanDefinition到容器中,在使用的时候生成具体的接口代理实现服务调用
+
+- dubbo 接口实例化
+
+  - 使用dubbo搭建微服务时,拿到的其他领域的服务依赖都是接口
+  - 接口实例化由DubboComponentScanRegistrar完成,其实现了ImportBeanDefinitionRegistrar接口重写registerBeanDefinitions方法,注册ReferenceAnnotationBeanPostProcessor
+  - 然后扫描@Reference和@DubboReference生成接口代理
+
+
+
+#### 3. ImportSelector     DeferredImportSelector
+
+有些功能我们并不需要 `Spring` 在一开始就加载进去，而是需要 `Spring` 帮助我们把这些功能动态加载进去，这时候这个 `ImportSelector` 的作用就来了。
+
+可以把实现这个接口的类做成一个开关，用来开启或者关闭某一个或者某些功能类。
+
+比如 ：`@EnableTransactionManagement`
+
+
+
+
+
+DeferredImportSelector
+
+在所有被 `@Configuration` 注解修饰的类处理完成后才运行
+
+`DeferredImportSelecto`r 用在处理 `@Conditional` 相关的导入时特别有用
+
+
+
+
+
+#### 4. BeanFactoryPostProcessor  BeanDefinitionRegistryPostProcessor
+
+- `BeanDefinitionRegistryPostProcessor`  创建 `BeanDefinition`
+
+- `BeanFactoryPostProcessor` 修改 `BeanDefinition`
+
+
+
+`BeanDefinitionRegistryPostProcessor` 先于 `BeanFactoryPostProcessor` 执行 (源码在： PostProcessorRegistrationDelegate#invokeBeanFactoryPostProcessors)
+
+
+
+#### 5. ClassPathScanningCandidateComponentProvider
+
+按自定义的类型，查找 `classpath` 下符合要求的 class 文件
 
 
 

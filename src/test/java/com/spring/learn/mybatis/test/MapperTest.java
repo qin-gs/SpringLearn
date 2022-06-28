@@ -7,7 +7,9 @@ import org.apache.ibatis.session.SqlSessionFactory;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
+import org.mybatis.spring.annotation.MapperScan;
 
+@MapperScan()
 @DisplayName("mybatis 单独测试")
 public class MapperTest {
 

@@ -9,18 +9,10 @@ import com.spring.learn.dao.BookDao;
 import com.spring.learn.factory.MyFactoryBean;
 import com.spring.learn.registry.MyImportBeanDefinitionRegistrar;
 import com.spring.learn.selector.MyImportSelector;
-import org.springframework.beans.factory.annotation.Configurable;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.Conditional;
-import org.springframework.context.annotation.FilterType;
-import org.springframework.context.annotation.Import;
-import org.springframework.context.annotation.Lazy;
-import org.springframework.context.annotation.Primary;
-import org.springframework.context.annotation.Scope;
+import org.springframework.context.annotation.*;
 
-@Configurable
+@Configuration
 @ComponentScan(
         value = "com.spring.learn",
         includeFilters = {
