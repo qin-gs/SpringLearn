@@ -1088,9 +1088,11 @@ spring提供`Lifecycle`接口，保证启动的时候调用start方法开始生�
 `BeanFactoryAspectJAdvisorsBuilder#buildAspectJAdvisors`
 
 1. 获取所有的`beanName`(所有`beanFactory`中注册的bean)
+
 2. 遍历`beanName`， 找出声明`@AspectJ`的类
+
 3. 对找出来的类进行增强器提取
-   `ReflectiveAspectJAdvisorFactory.getAdvisors`
+   `ReflectiveAspectJAdvisorFactory.getAdvisors`，忽略  `Pointcut.class` 注解的类
    
     1. 获取普通增强器
         - 对切点注解信息的获取(`ReflectiveAspectJAdvisorFactory.getPointcut`)
@@ -1098,6 +1100,8 @@ spring提供`Lifecycle`接口，保证启动的时候调用start方法开始生�
           主要搜索方法上的以下注解`Pointcut.class, Around.class, Before.class, After.class, AfterReturning.class, AfterThrowing.class`，提取得到的注解中的表达式
           
           使用 `AspectJExpressionPointcut `实例封装获取的信息
+          
+          获取指定方法上的注解 使用 `AspectJAnnotation` 封装
           
         - 根据切点信息生成增强器(`ReflectiveAspectJAdvisorFactory#getAdvisor返回增强器`)
           
@@ -1121,7 +1125,7 @@ spring提供`Lifecycle`接口，保证启动的时候调用start方法开始生�
    
 4. 将提取结果放入缓存
 
-**寻找匹配的增强器**
+**寻找匹配当前 bean 的增强器**
 
 `AbstractAdvisorAutoProxyCreator#findAdvisorsThatCanApply`
 
@@ -2654,7 +2658,7 @@ DeferredImportSelector
 
 在所有被 `@Configuration` 注解修饰的类处理完成后才运行
 
-`DeferredImportSelecto`r 用在处理 `@Conditional` 相关的导入时特别有用
+`DeferredImportSelector` 用在处理 `@Conditional` 相关的导入时特别有用
 
 
 
