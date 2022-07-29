@@ -143,7 +143,7 @@ public class TestController {
     }
 
     /**
-     * 如果类型不匹配，会自动进行类型转换，或者使用 WebbDataBinder(@InitBinder注解) 自定义转换方式
+     * 如果类型不匹配，会自动进行类型转换，或者使用 WebDataBinder(@InitBinder注解) 自定义转换方式
      * 如果用Map会将所有的数据全部放进去
      */
     @RequestMapping("getValue")

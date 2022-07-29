@@ -2068,7 +2068,7 @@ servlet接口的实现类 生命周期：初始化，运行，销毁
 
     2. 根据`request`寻找`Handler`，并加入拦截器到执行链(如果没有找到，通过`response`返回错误信息)
 
-       `spring`启动时会将所有映射类型的`bean`注册到`this.handlerMappings中`
+       `spring`启动时会将所有映射类型的`bean`注册到`this.handlerMappings`中
        根据`url`找到匹配的`Controller`返回，如果没有找到尝试去查找默认处理器，如果查找到的是`string`，意味着返回的是`bean`名称，根据名称查找`bean`
 
        用`HandlerExecutionChain`对返回的`Handler`进行封装
@@ -2211,7 +2211,7 @@ RequestResponseBodyMethodProcessor支持的请求类型是Controller方法参数
 
 
 
-常用的HandlerMethodArgumentResolver实现类(本文粗略讲下，有兴趣的读者可自行研究)。
+常用的HandlerMethodArgumentResolver实现类
 
 1. RequestParamMethodArgumentResolver
 
@@ -2231,7 +2231,7 @@ RequestResponseBodyMethodProcessor支持的请求类型是Controller方法参数
 
 5. RequestResponseBodyMethodProcessor
 
-    本文已分析过
+   已分析过
 
 6. ServletRequestMethodArgumentResolver
 
@@ -2251,7 +2251,7 @@ RequestResponseBodyMethodProcessor支持的请求类型是Controller方法参数
 
     参数类型是HttpEntity
 
-从名字我们也看的出来， 以Resolver结尾的是实现了HandlerMethodArgumentResolver接口的类，以Processor结尾的是实现了HandlerMethodArgumentResolver和HandlerMethodReturnValueHandler的类。
+从名字看的出来， 以Resolver结尾的是实现了 HandlerMethodArgumentResolver 接口的类，以 Processor 结尾的是实现了 HandlerMethodArgumentResolver 和 HandlerMethodReturnValueHandler 的类。
 
 
 
@@ -2307,21 +2307,21 @@ RequestResponseBodyMethodProcessor支持的请求类型是Controller方法参数
 
 #### 11.8 查找 Controller
 
-1. HandlerMethod ：封装了方法参数、方法注解，方法返回值等众多元素的类
+1. `HandlerMethod `：封装了方法参数、方法注解，方法返回值等众多元素的类
 
 ![HandlerMethod继承关系](../image/HandlerMethod继承关系.png)
 
-- InvocableHandlerMethod 处理请求
+- `InvocableHandlerMethod `处理请求
 
-- ServletInvocableHandlerMethod 处理响应 (处理请求类的子类)，该类在 HandlerAdapter(RequestMappingHandlerAdapter) 对每个请求处理过程中，都会实例化出一个，分别对请求和返回进行处理
+- `ServletInvocableHandlerMethod `处理响应 (处理请求类的子类)，该类在 `HandlerAdapter(RequestMappingHandlerAdapter)` 对每个请求处理过程中，都会实例化出一个，分别对请求和返回进行处理
 
-2. MethodParameter：封装了**方法参数**具体信息的工具类，包括参数的的索引位置，类型，注解，参数名等信息
+2. `MethodParameter`：封装了**方法参数**具体信息的工具类，包括参数的的索引位置，类型，注解，参数名等信息
 
-3. RequestCondition 接口 请求条件
+3. `RequestCondition `接口 请求条件
 
-   PatternsRequestCondition 会自动在路径前补上 `/`
+   `PatternsRequestCondition `会自动在路径前补上 `/`
 
-4. RequestMappingInfo 封装各种请求映射条件并实现 RequestCondition 接口
+4. `RequestMappingInfo `封装各种请求映射条件并实现 `RequestCondition `接口
 
    ```java
    RequestMappingInfo.Builder builder = RequestMappingInfo
@@ -2340,31 +2340,41 @@ RequestResponseBodyMethodProcessor支持的请求类型是Controller方法参数
 
 **SpringMVC 的初始化操作**
 
-`org.springframework.web.servlet.handler.AbstractHandlerMethodMapping#initHandlerMethods`
+找出 spring 容器中所有的 bean，检测是否被 `@Controller` 或 `@RequestMapping` 修饰，遍历提取信息
 
-找出 spring 容器中所有的 bean，检测是否被 @Controller 或 @RequestMapping 修饰，遍历提取信息
+```
+AbstractHandlerMethodMapping#initHandlerMethods
+AbstractHandlerMethodMapping#processCandidateBean
+- 其中 isHandler 会进行判断
+- (AnnotatedElementUtils.hasAnnotation(beanType, Controller.class) ||
+	AnnotatedElementUtils.hasAnnotation(beanType, RequestMapping.class));
+AbstractHandlerMethodMapping#detectHandlerMethods
+RequestMappingHandlerMapping#getMappingForMethod
+```
 
-初始化 Map<Method, RequestMappingInfo>
 
-- 创建 RequestMappingInfo：找到方法中 @RequestMapping 注解，类 和 方法 上都存在该注解的话需要进行合并`org.springframework.web.servlet.mvc.condition.RequestCondition#combine`
+
+初始化 `Map<Method, RequestMappingInfo>`
+
+- 创建 `RequestMappingInfo`：找到方法中 `@RequestMapping` 注解，类 和 方法 上都存在该注解的话需要进行合并`org.springframework.web.servlet.mvc.condition.RequestCondition#combine`
 
   PatternsRequestCondition    AntPathMatcher
 
   RequestMethodsRequestCondition   
 
-注册 HandlerMethod
+注册 `HandlerMethod`
 
 
 
-SpringMVC的分发器DispatcherServlet会根据浏览器的请求地址获得HandlerExecutionChain
+SpringMVC的分发器 `DispatcherServlet` 会根据浏览器的请求地址获得 `HandlerExecutionChain`
 
-org.springframework.web.servlet.handler.AbstractHandlerMethodMapping#lookupHandlerMethod
+`org.springframework.web.servlet.handler.AbstractHandlerMethodMapping#lookupHandlerMethod`
 
 
 
-- 基于Controller方法的映射 RequestMappingHandlerMapping 
+- 基于`Controller`方法的映射 `RequestMappingHandlerMapping `
 
-- 静态文件映射 SimpleUrlHandlerMapping
+- 静态文件映射 `SimpleUrlHandlerMapping`
 
   ```java
   <mvc:resources location="/static/" mapping="/static/**"/>
@@ -2372,7 +2382,7 @@ org.springframework.web.servlet.handler.AbstractHandlerMethodMapping#lookupHandl
   WebMvcConfigurer 重新 addResourceHandlers
   ```
 
-   Spring解析配置文件会使用 ResourcesBeanDefinitionParser 进行解析的时候，会实例化出 SimpleUrlHandlerMapping  ->  ResourceHttpRequestHandler
+   Spring解析配置文件会使用 `ResourcesBeanDefinitionParser `进行解析的时候，会实例化出 `SimpleUrlHandlerMapping  ->  ResourceHttpRequestHandler`
 
 
 

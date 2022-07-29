@@ -23,7 +23,7 @@ public class ElConfig {
 	/**
 	 * 自动给默认值
 	 */
-	@Value("${ corePoolSize:10 }")
+	@Value("${corePoolSize:10}")
 	private int corePoolSize;
 
 	@Value(" ${array:1, 2, 3, 4} ")

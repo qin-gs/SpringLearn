@@ -13,6 +13,11 @@ import org.springframework.util.StringValueResolver;
 import javax.sql.DataSource;
 import java.beans.PropertyVetoException;
 
+/**
+ * 用于获取StringValueResolver的一个扩展类， StringValueResolver用于获取基于String类型的properties的变量，
+ * 一般我们都用@Value的方式去获取，如果实现了这个Aware接口，把StringValueResolver缓存起来，
+ * 通过这个类去获取String类型的变量，效果是一样的。
+ */
 @Configuration
 @PropertySource("/dbconfig.properties")
 public class DataSourceConfig implements EmbeddedValueResolverAware {

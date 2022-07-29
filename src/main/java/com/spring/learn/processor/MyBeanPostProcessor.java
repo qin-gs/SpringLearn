@@ -9,21 +9,26 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 
 /**
- * AbstractAutowireCapableBeanFactory
+ * AbstractAutowireCapableBeanFactory#initializeBean
+ * <p>
+ * AbstractApplicationContext#refresh() -> registerBeanPostProcessors (找出所有的 BeanPostProcessor)
+ *
  * <p>
  * 先执行 populateBean 给bean属性赋值
  * <p>
+ * initializeBean
+ * <p>
  * 1. applyBeanPostProcessorsBeforeInitialization(wrappedBean, beanName);
- * 遍历容器中所有的BeanPostProcessor，执行postProcessBeforeInitialization，任意一个返回null，直接返回不执行后面的
+ * 遍历容器中所有的 BeanPostProcessor (上面已经找好了)，执行 postProcessBeforeInitialization
  * <p>
  * 2. invokeInitMethods(beanName, wrappedBean, mbd); 执行自定义的初始化
  * 3. applyBeanPostProcessorsAfterInitialization(wrappedBean, beanName);
  * <p>
- * spring中BeanPostProcessor的多种使用
+ * spring 中 BeanPostProcessor 的多种使用
  * 1. ApplicationContextAwareProcessor 注入ioc容器(context)
  * 2. BeanValidationPostProcessor 进行数据校验
- * 3. InitDestroyAnnotationBeanPostProcessor 处理@PostConstruce 和 @PreDestroy 注解
- * 4. AutowiredAnnotationBeanPostProcessor 处理@Autowired 注解
+ * 3. InitDestroyAnnotationBeanPostProcessor 处理 @PostConstructor 和 @PreDestroy 注解
+ * 4. AutowiredAnnotationBeanPostProcessor 处理 @Autowired 注解
  */
 @Component
 public class MyBeanPostProcessor implements BeanPostProcessor {
