@@ -30,7 +30,7 @@ public class ResourceTest {
     /**
      * 扫描目录下的指定资源
      * <p>
-     * classpath: 如果多个jar包或文件系统中都有相同的包名，之后加载第一个
+     * classpath: 如果多个jar包或文件系统中都有相同的包名，只会加载第一个
      * classpath*: 如果多个包名相同，全部加载
      */
     @Test

@@ -1,4 +1,4 @@
-package com.spring.learn.convert;
+package com.spring.learn.converter;
 
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.core.convert.converter.ConverterFactory;

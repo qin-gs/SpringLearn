@@ -12,7 +12,10 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * 用该接口来消除一些属性
+ * 用该接口来消除一些属性；
+ * 遍历 bean 的各个属性用 properties 填充, BeanDefinitionVisitor 会将替换的操作委托给内部的一个 StringValueResolver 来执行(PlaceholderResolvingStringValueResolver),
+ * 而这个 StringValueResolver 又会将操作委托给 PropertyPlaceholderHelper, 这个 helper(PropertyPlaceholderHelper) 在实际执行的时候会执行内部的 parseStringValue 函数，
+ * 使用 BeanDefinitionVisitor 的 visitBeanDefinition 方法来解析
  */
 public class ObscenityRemovingBeanFactoryPostProcessor implements BeanFactoryPostProcessor {
 

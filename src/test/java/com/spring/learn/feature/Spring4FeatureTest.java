@@ -8,6 +8,11 @@ import org.springframework.util.concurrent.ListenableFutureTask;
 
 import java.util.concurrent.*;
 
+/**
+ * Java 在 JDK1.6 提供了 Future，FutureTask，ExecutorService 等用于支持异步编程，
+ * 但是 Future，FutureTask 没有提供 Callback 机制，只能主动轮询，通过 get 去获取结果。
+ * Spring 的 ListenableFutureTask 对此做了扩展，支持 callback 机制。
+ */
 @DisplayName("spring4 新功能")
 public class Spring4FeatureTest {
 

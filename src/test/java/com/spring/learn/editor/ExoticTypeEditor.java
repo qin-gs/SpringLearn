@@ -4,7 +4,7 @@ import java.beans.PropertyEditorSupport;
 import java.util.Locale;
 
 /**
- * 自定义一个类型转换器，通常在Controller中结合@InitBinder使用
+ * 自定义一个类型转换器，通常在Controller中结合@InitBinder使用，通过 CustomEditorConfigurer 注册到 spring 中
  * <p>
  * String -> ExoticType
  */

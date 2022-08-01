@@ -2,15 +2,26 @@
 
 被`@Configuration`注解的类会被代理
 
-`AnnotationConfigApplicationContext -> refresh() -> invokeBeanFactoryPostProcessors()`
+`AnnotationConfigApplicationContext -> refresh() -> invokeBeanFactoryPostProcessors() -> ConfigurationClassPostProcessor#enhanceConfigurationClasses`
 
 判断被注解的类是否已经被代理(通过接口判断`EnhancedConfiguration.class extends BeanFactoryAware`)
 
 对没被代理的类放入map, 全部进行cglib代理(继承该类；jdk动态代理基于接口)，继承的时候实现一个接口`EnhancedConfiguration`，
 
+cglib 添加了三个回调
+
+```java
+private static final Callback[] CALLBACKS = new Callback[] {
+		new BeanMethodInterceptor(),
+		new BeanFactoryAwareMethodInterceptor(),
+		NoOp.INSTANCE
+};
+```
+
 同时为代理类加一个 `BeanFactory` 类型的`$$beanFactory`字段通过`BeanFactoryAwareGeneratorStrategy.class`
 完成字段的添加，通过`BeanFactoryAwareMethodInterceptor`完成字段的赋值)
-重写被`@Bean`注解的方法，通过上面的`$$beanFactory`生成
+
+`BeanMethodInterceptor` 重写被`@Bean`注解的方法，通过上面的`$$beanFactory`生成
 
 (用过滤器实现`MethodInterceptor`如果是第一次生成(判断方法名是否相同(当前正在执行的方法 和 被调用方法))去调用父类的方法new对象，否则用工厂getBean获取)
 
@@ -83,9 +94,9 @@ new创建对象 -> 执行所有的BeanPostProcessor -> @PostConstruct
 3. join point 连接点(允许使用通知的地方，spring只允许方法连接点，方法前后都是)
 4. pointcut 切入点(连接点中选择几个，真正的放入通知)
 5. introduction 引入(向现有的类中添加新方法属性)
-5. target object 目标对象(被通知的对象，真正的业务逻辑)
-6. aop proxy 代理
-7. weaving 织入(把切面应用到目标对象创建代理对象的过程)
+6. target object 目标对象(被通知的对象，真正的业务逻辑)
+7. aop proxy 代理
+8. weaving 织入(把切面应用到目标对象创建代理对象的过程)
 
 1. before advice 前置通知
 2. after returning advice 正常返回通知
@@ -187,8 +198,7 @@ refresh -> finishBeanFactoryInitialization
 
 原理
 
-refresh -> finishRefresh -> publishEvent -> getApplicationEventMulticaster().multicastEvent(applicationEvent, eventType)
-;
+refresh -> finishRefresh -> publishEvent -> getApplicationEventMulticaster().multicastEvent(applicationEvent, eventType);
 
 1. 创建容器(refresh)，刷新完成(finishRefresh)
 

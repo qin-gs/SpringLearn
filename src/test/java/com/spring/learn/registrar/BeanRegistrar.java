@@ -12,7 +12,7 @@ import org.springframework.context.annotation.ImportBeanDefinitionRegistrar;
 import org.springframework.core.type.AnnotationMetadata;
 
 /**
- * 手动注册 bean
+ * 手动注册 bean，@EnableAspectJAutoProxy
  * 使用场景：
  * <pre>
  *     1. 外部依赖类无法自动扫描和初始化，使用ImportBeanDefinitionRegistrar手动注入和初始化

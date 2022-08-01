@@ -9,7 +9,7 @@ import java.beans.PropertyDescriptor;
 import java.util.Objects;
 
 /**
- * 对象创建前后，对象初始化前后 进行扩展；
+ * 对象创建前后，对象初始化前后 进行扩展；<a href="https://blog.csdn.net/luzhensmart/article/details/105962536">参考</a>
  * 触发时机：AbstractAutowireCapableBeanFactory#createBean -> resolveBeforeInstantiation
  * <p>
  * 1、postProcessBeforeInstantiation 调用时机为 bean 实例化 (Instantiation) 之前 如果返回了 bean 实例,

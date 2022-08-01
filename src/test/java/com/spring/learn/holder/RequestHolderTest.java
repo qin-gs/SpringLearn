@@ -12,7 +12,6 @@ public class RequestHolderTest {
 
     public void test() {
         // 获取当前请求的 request
-        // 要使用 RequestContextHolder 需要配置 RequestContextListener 监听器
         HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
     }
 }
