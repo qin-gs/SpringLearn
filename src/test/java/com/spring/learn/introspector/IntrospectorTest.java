@@ -2,11 +2,10 @@ package com.spring.learn.introspector;
 
 import org.junit.jupiter.api.Test;
 
-import java.beans.BeanInfo;
-import java.beans.IntrospectionException;
-import java.beans.Introspector;
-import java.beans.MethodDescriptor;
+import javax.servlet.http.HttpServletRequest;
+import java.beans.*;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.Arrays;
 
 /**
@@ -23,6 +22,13 @@ public class IntrospectorTest {
     public void test() throws IntrospectionException {
         // getBeanInfo 将得到的对象存储到了 ThreadGroupContext，是不会被回收的
         BeanInfo beanInfo = Introspector.getBeanInfo(User.class);
+
+        // 获取指定属性
+        PropertyDescriptor pd = new PropertyDescriptor("name", User.class);
+        Method readMethod = pd.getReadMethod();
+        Method writeMethod = pd.getWriteMethod();
+        System.out.println(pd.getDisplayName() +  readMethod + writeMethod);
+
         MethodDescriptor[] descriptors = beanInfo.getMethodDescriptors();
         for (MethodDescriptor descriptor : descriptors) {
             System.out.println(descriptor);
@@ -40,5 +46,18 @@ public class IntrospectorTest {
 
         // 清空缓存
         Introspector.flushCaches();
+    }
+
+    /**
+     * 通过内省给对象赋值
+     */
+    @Test
+    public void introspector(HttpServletRequest request) throws Exception {
+        User user = new User();
+        PropertyDescriptor[] pds = Introspector.getBeanInfo(User.class).getPropertyDescriptors();
+        for (PropertyDescriptor pd : pds) {
+            pd.getWriteMethod().invoke(user, request.getParameter(pd.getName()));
+        }
+
     }
 }
