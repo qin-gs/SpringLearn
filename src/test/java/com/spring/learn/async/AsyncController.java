@@ -15,7 +15,7 @@ public class AsyncController {
 
     @GetMapping("async")
     public Callable<String> async(HttpServletRequest request) {
-        // 将ServletRequest 置于异步模式: Servlet和所有的过滤器都可以退出，但相应保持打开状态，运行稍后完成
+        // 将ServletRequest 置于异步模式: Servlet和所有的过滤器都可以退出，但 response 保持打开状态，运行稍后完成
         AsyncContext asyncContext = request.startAsync();
         return new Callable<String>() {
             @Override

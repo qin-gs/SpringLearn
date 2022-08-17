@@ -4,6 +4,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.EnableAspectJAutoProxy;
 
 /**
+ * <pre>
  * AOP 在程序运行期动态的将某段代码切入到指定的位置运行
  * 前置通知
  * 后置通知
@@ -61,6 +62,7 @@ import org.springframework.context.annotation.EnableAspectJAutoProxy;
  *        1. resolveBeforeInstantiation 解析BeforeInstantiation // 希望后置处理器创建并返回代理对象，如果还没返回自己去创建(走上面的3.6流程)
  *          后置处理器尝试返回对象，先遍历所有的后置处理器，如果是InstantiationAwareBeanPostProcessor，返回调用它的postProcessBeforeInstantiation
  *        2. doCreateBean 真正的去创建bean
+ * </pre>
  */
 @EnableAspectJAutoProxy
 @Configuration
